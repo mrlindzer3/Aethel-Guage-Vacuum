@@ -102,3 +102,28 @@ def execute_continuous_hardware_stream():
 
 if __name__ == "__main__":
     execute_continuous_hardware_stream()
+    from core.unified_optomechanical_core.py import UnifiedOptomechanicalCore
+
+    # Initialize the master physics pipeline at setup boundary
+    unified_physics_unit = UnifiedOptomechanicalCore(node_count=NODE_COUNT)
+
+    # Inside the active 200 FPS frame loop execution block:
+    # 1. Compute the entire unified physics matrix pass
+    physics_outputs = unified_physics_unit.execute_integrated_physics_pipeline(
+        positions=positions,
+        velocities=mock_velocities,
+        baryonic_matrix=baryonic_matrix,
+        rtm_tensor=rtm_distance_tensor,
+        dt=0.005
+    )
+
+    # 2. Smooth the spatial matrix using the Harmonic Laplacian surface field
+    # This locks down the mid-air holographic geometry, making it perfectly fluid
+    positions += physics_outputs["laplacian_surface"] * 0.02
+
+    # 3. Feed the optomechanical laser power mask back to the trapping engine
+    cort_outputs = cort.execute_unified_trapping_pass(
+        node_positions=positions,
+        rtm_tensor=rtm_distance_tensor,
+        power_scaling_mask=physics_outputs["tweezer_power_mask"]
+    )
