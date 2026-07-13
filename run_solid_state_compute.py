@@ -14,6 +14,22 @@ from core.quantum_braiding_engine import QuantumBraidingEngine
 from core.hologramy_field_modulator import HologramyFieldModulator
 # In your master launch files:
 from physics.unified_historical_core import UnifiedHistoricalCore
+# Add this update directly inside your run_solid_state_compute.py script
+from core.optomechanical_emulator import OptomechanicalEmulator
+
+# 1. Instantiate the emulation layer right alongside your physics core
+hardware_emulator = OptomechanicalEmulator(node_count=NODE_COUNT)
+
+# 2. Inside the main compute sequence block, pass the physics outputs to the emulator:
+hardware_telemetry = hardware_emulator.emulate_physical_trap_array(
+    positions=stabilized_positions,
+    power_mask=physics_metrics["tweezer_power_mask"]
+)
+
+# 3. Output the physical real-world diagnostics alongside the data logs:
+print(f" ▪️ Hardware Status State : {hardware_telemetry['hardware_status']}")
+print(f" ▪️ Max Optical Power Out : {np.max(hardware_telemetry['absolute_powers_mw']):.3f} mW")
+print(f" ▪️ Max Node Temperature  : {np.max(hardware_telemetry['node_temperatures_k']):.2f} K")
 
 # Instantiate the 15-equation architecture engine
 physics_core = UnifiedHistoricalCore(node_count=640)
