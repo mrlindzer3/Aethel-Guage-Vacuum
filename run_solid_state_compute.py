@@ -127,3 +127,13 @@ def execute_hardware_computation():
 
 if __name__ == "__main__":
     execute_hardware_computation()
+    from core.spatial_renderer import SpatialRenderer
+
+    # 1. Instantiate the viewport unit inside the initialization phase
+    viewport_unit = SpatialRenderer(width=65, height=20)
+
+    # 2. Right after computing the stabilized positions and hologramy vectors:
+    ascii_snapshot = viewport_unit.generate_ascii_viewport(stabilized_positions)
+    
+    print("\n🔮 LIVE SUBSTRATE TOPOLOGY TRACKING VIEWPORT:")
+    print(ascii_snapshot)
