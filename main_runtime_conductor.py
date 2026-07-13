@@ -127,3 +127,36 @@ if __name__ == "__main__":
         rtm_tensor=rtm_distance_tensor,
         power_scaling_mask=physics_outputs["tweezer_power_mask"]
     )
+    from core.quantum_braiding_engine import QuantumBraidingEngine
+
+    # Initialize the engine at the global setup boundary
+    braid_engine = QuantumBraidingEngine(node_count=NODE_COUNT)
+
+    # Inside your 200 FPS hardware frame loop:
+    # 1. Drive the optomechanical tweezers into alternating orbital braiding paths
+    braided_nodes = braid_engine.generate_braid_trajectories(
+        base_positions=positions,
+        time_pulse=frame_count * 0.005
+    )
+
+    # 2. Extract structural surface gradients from the unified physics core
+    physics_data = unified_physics_unit.execute_integrated_physics_pipeline(
+        positions=braided_nodes,
+        velocities=mock_velocities,
+        baryonic_matrix=baryonic_matrix,
+        rtm_tensor=rtm_distance_tensor,
+        dt=0.005
+    )
+
+    # 3. Interlock the braids and the Laplacian surface to project the final layout
+    final_holographic_coordinates = braid_engine.modulate_holographic_egress(
+        braided_positions=braided_nodes,
+        laplacian_surface=physics_data["laplacian_surface"]
+    )
+
+    # 4. Pass the stabilized wavefront directly to the 150-Megapixel rasterizer
+    frame_data = rasterizer.generate_surreal_frame_buffer(
+        node_positions=final_holographic_coordinates,
+        adaptation_matrix=np.eye(NODE_COUNT),
+        time_pulse=frame_count * 0.005
+    )
