@@ -12,6 +12,20 @@ from core.ternary_logic_unit import TernaryLogicUnit
 from core.unified_optomechanical_core import UnifiedOptomechanicalCore
 from core.quantum_braiding_engine import QuantumBraidingEngine
 from core.hologramy_field_modulator import HologramyFieldModulator
+# In your master launch files:
+from physics.unified_historical_core import UnifiedHistoricalCore
+
+# Instantiate the 15-equation architecture engine
+physics_core = UnifiedHistoricalCore(node_count=640)
+
+# Execute the transformation block directly inside your active runtime loop
+physics_metrics = physics_core.process_all_historical_constraints(
+    positions=braided_positions,
+    velocities=velocities,
+    baryonic_matrix=baryonic_matrix,
+    rtm_tensor=rtm_distance_tensor,
+    dt=0.005
+)
 
 NODE_COUNT = 640
 
