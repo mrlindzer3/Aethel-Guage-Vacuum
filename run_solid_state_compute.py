@@ -16,6 +16,25 @@
     finally:
         # Ensure that whenever the execution script finishes, the terminal cursor unlocks
         console_view.close()
+    from core.neuromorphic_ml_node import NeuromorphicMLNode
+
+    # 1. Initialize the online neuromorphic model at global setup
+    substrate_ml = NeuromorphicMLNode(node_count=NODE_COUNT, learning_rate=0.015)
+
+    # 2. Inside your active hardware frame loop pass:
+    # Run the model pass right after calculating the unified physics and Laplacian metrics.
+    # The ML model reads the positions and uses the Laplacian surface as its error layer,
+    # outputting an optimized, predictive coordinate map.
+    predictive_positions = substrate_ml.predict_and_adapt_substrate(
+        positions=stabilized_positions,
+        laplacian_surface=physics_metrics["laplacian_surface"]
+    )
+
+    # 3. Stream the ML-predicted positions directly to the hologramy modulator
+    hologramy_wavefront = hologramy_modulator.compute_volumetric_interference_field(
+        braided_positions=predictive_positions,
+        laplacian_surface=physics_metrics["laplacian_surface"]
+    )
 
 import numpy as np
 import time
