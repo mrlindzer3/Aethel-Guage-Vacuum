@@ -3,6 +3,19 @@
 # ROLE: Real-Time Solid-State Compute Validation Runtime
 # ARCHITECTURE: Non-Von Neumann Gravity Well / Hologramy Pipeline
 # ──────────────────────────────────────────────────────────────────────────
+    from core.optimized_console import OptimizedConsole
+
+    # 1. Initialize the optimized double-buffer at startup
+    console_view = OptimizedConsole(width=65, height=20)
+
+    try:
+        # 2. Inside your high-velocity loops, send positions straight to the blitter
+        # This draws changes instantly without causing terminal stutter
+        console_view.update_frame(stabilized_positions)
+        
+    finally:
+        # Ensure that whenever the execution script finishes, the terminal cursor unlocks
+        console_view.close()
 
 import numpy as np
 import time
