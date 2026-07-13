@@ -177,3 +177,15 @@ if __name__ == "__main__":
     
     # Run this right at the bottom after compiling the 150MP UHT Pixel Engine buffer to lock the frame:
     game_kernel.execute_frame_tick(positions, rtm_distance_tensor, cort_outputs)
+    from core.clock_generator import ClockGenerator
+
+    # Initialize at the global setup boundary:
+    logger.info("⏱️ INITIALIZATION: Binding Master Hardware Sync Clock (200 Hz)...")
+    master_clock = ClockGenerator(target_frequency_hz=200.0)
+
+    # Wrap your frame processing sequence inside an execution tick loop:
+    while system_is_running:
+        # Enforce the 5.0ms phase-lock loop boundary before starting the next frame
+        frame_delta = master_clock.synchronize_hardware_bus()
+        
+        # [Execute: Game Kernel -> CORT Engine -> Neuromorphic ML -> TIR Modulator]
