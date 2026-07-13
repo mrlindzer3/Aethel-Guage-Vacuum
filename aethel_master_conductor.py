@@ -162,3 +162,18 @@ def run_fully_integrated_stack():
 
 if __name__ == "__main__":
     final_hypergraph = run_fully_integrated_stack()
+    from core.quantum_game_kernel import QuantumGameKernel
+
+    # Insert inside run_ultimate_co_design_pipeline() right before processing the mesh:
+    logger.info("🎮 STEP 3b: Initializing Quantum Game Kernel Controller...")
+    game_kernel = QuantumGameKernel(node_count=NODE_COUNT)
+    
+    # Process immediate player input (Simulating pushing forward-right on the joystick while pressing action)
+    positions = game_kernel.process_player_input(
+        current_positions=positions, 
+        joystick_vector=(1.0, 0.5), 
+        action_button=True
+    )
+    
+    # Run this right at the bottom after compiling the 150MP UHT Pixel Engine buffer to lock the frame:
+    game_kernel.execute_frame_tick(positions, rtm_distance_tensor, cort_outputs)
