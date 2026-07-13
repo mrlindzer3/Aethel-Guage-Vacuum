@@ -1,11 +1,69 @@
 # ──────────────────────────────────────────────────────────────────────────
 # FILE: ai/gnn_processor.py
-# ROLE: Recursive Vectoring Network & Geometric Machine Learning Layer
+# ROLE: Subatomic-Aware Recursive Vectoring Network & Machine Learning Layer
 # ENGINEER: Ryan Taylor Lindsey
 # ──────────────────────────────────────────────────────────────────────────
 
 import numpy as np
 import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("GNNProcessor")
+
+class GeometricRecursiveGNN:
+    def __init__(self, node_count: int = 640, feature_dim: int = 6):
+        """
+        Initializes the ML layer with an expanded 6-dimensional feature space per node.
+        Vector layout: [X, Y, Z, Bosonic_Coherence, Proton_Spin, Neutron_Spin]
+        """
+        self.node_count = node_count
+        self.feature_dim = feature_dim
+        
+        rng = np.random.default_rng(42)
+        self.W_message = rng.normal(loc=0.0, scale=0.1, size=(feature_dim, feature_dim))
+        self.W_update = rng.normal(loc=0.0, scale=0.1, size=(feature_dim, feature_dim))
+
+    def execute_subatomic_recursive_vectoring(self, mesh_data: dict, subatomic_tensor: dict, iterations: int = 3) -> np.ndarray:
+        """
+        Runs the recursive message-passing loops over the 640-node mesh.
+        Fuses the physical 3D spatial layout with the proton-neutron quantum spin metrics.
+        """
+        logger.info(f"🧠 ML: Compiling subatomic-aware hidden state matrix for {self.node_count} nodes...")
+        
+        # Extract base geometry
+        positions = mesh_data["node_positions"]
+        
+        # Extract subatomic tensor features
+        bosonic_coherence = subatomic_tensor["bosonic_field_coherence"].reshape(-1, 1)
+        baryonic_states = subatomic_tensor["baryonic_nuclear_states"]
+        proton_spins = np.abs(baryonic_states[:, 0]).reshape(-1, 1)
+        neutron_spins = np.abs(baryonic_states[:, 1]).reshape(-1, 1)
+        
+        # Concatenate into the final 6D hidden features space [640, 6]
+        H = np.hstack((positions, bosonic_coherence, proton_spins, neutron_spins))
+        hyperedges = mesh_data["fatecrystal_mesh"]
+
+        # Recursive Loop Execution
+        for step in range(iterations):
+            aggregated_messages = np.zeros_like(H)
+            
+            # Message Passing across Web of Wyrd runic lines
+            for edge in hyperedges:
+                nodes = edge["nodes"]
+                weight = edge["fatecrystal_phase_lock"]
+                
+                edge_vector = np.mean(H[nodes], axis=0) * weight
+                for node in nodes:
+                    aggregated_messages[node] += edge_vector
+
+            # Machine Learning state update step
+            messages = np.dot(aggregated_messages, self.W_message)
+            H_next = np.tanh(np.dot(H, self.W_update) + messages)
+            H = H_next
+
+        logger.info(f"✨ ML: Recursive training pass complete. Subatomic vector space stabilized.")
+        return H
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("GNNProcessor")
