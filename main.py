@@ -1,40 +1,91 @@
 # ──────────────────────────────────────────────────────────────────────────
 # FILE: main.py
-# ROLE: Global Orchestration Entry Point for the Resonance Holography Stack
+# ROLE: Master Multi-Domain Simulation Orchestrator (Fully Integrated)
 # ENGINEER: Ryan Taylor Lindsey
 # ──────────────────────────────────────────────────────────────────────────
 
-import sys
+import numpy as np
 import logging
-from core.holographic_matrix_conductor import HolographicMatrixConductor
+from core.quantum_field_interposer import QuantumFieldInterposer
+from core.plasmonic_ray_tracer import PlasmonicSolitonTracer
+from core.harmonic_boundary_solver import HarmonicBoundarySolver
+from core.acousto_optic_mixer import AcoustoOpticMixer
+from core.einstein_fresnel_engine import EinsteinFresnelEngine
+from core.evanescent_decoupler import EvanescentDecoupler
+from core.vacuum_anchor_engine import VacuumAnchorEngine
+from ai.hyperedge_calculus import HyperedgeCalculusEngine
+from ai.non_linear_field_optimizer import NonLinearFieldOptimizer
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
-)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("AethelGaugeVacuumMain")
 
-def main():
-    logger.info("🌌 START: Bootstrapping Aethel Gauge Vacuum Simulation Stack...")
+def run_fully_integrated_stack():
+    logger.info("🌌 BOOT: Initializing Full Aethel-Gauge-Vacuum Stack...")
     
-    try:
-        # Initialize the global orchestration loop conductor
-        conductor = HolographicMatrixConductor()
-        
-        # Execute the unified quantum field and AI optimization pass
-        success = conductor.run_holographic_loop()
-        
-        if success:
-            logger.info("🚀 SYSTEM: Global holographic synchronization pass completed nominally.")
-        else:
-            logger.warning("⚠️ SYSTEM: Synchronization loop completed with non-fatal field variances.")
-            
-    except Exception as e:
-        logger.critical(f"❌ CRITICAL: System crash detected in global orchestration loop: {str(e)}")
-        sys.exit(1)
+    # ─── 1. INITIALIZATION ──────────────────────────────────────────────────
+    grid_size = 16
+    interposer = QuantumFieldInterposer(spatial_resolution=grid_size)
+    tracer = PlasmonicSolitonTracer(grid_size=grid_size)
+    solver = HarmonicBoundarySolver()
+    mixer = AcoustoOpticMixer(grid_size=grid_size)
+    fresnel_engine = EinsteinFresnelEngine(n0=1.000293)
+    decoupler = EvanescentDecoupler(grid_size=grid_size)
+    anchor_engine = VacuumAnchorEngine(lattice_constant=1e-6)
+    hyperedge_engine = HyperedgeCalculusEngine(boundary_radius=1.0)
+    optimizer = NonLinearFieldOptimizer(learning_rate=0.002)
+
+    # ─── 2. REFERENCE WAVE & PLASMA GENERATION ──────────────────────────────
+    logger.info("🔄 STAGE 1: Generating coherent field states on lattice screen...")
+    # Map raw addressable vacuum grid register
+    vacuum_matrix = interposer.drive_field_excitation(coordinates=(8, 8), phase_angle=np.pi/4)
+    
+    # Fire the stabilized reference beam (soliton wavepacket)
+    reference_beam = tracer.generate_soliton_wavepacket(amplitude=1.5, phase=0.1)
+    
+    # Simulate a high-frequency acoustic field (phonon pressure grid)
+    phonon_pressure = np.sin(np.linspace(0, np.pi * 4, grid_size * grid_size)).reshape(grid_size, grid_size)
+    
+    # Mix light and sound to establish the dynamic plasma refractive index grid
+    refractive_index = mixer.calculate_plasma_grating(np.abs(reference_beam), phonon_pressure)
+
+    # ─── 3. EINSTEIN-FRESNEL METRIC MODULATORS ──────────────────────────────
+    logger.info("📐 STAGE 2: Applying Einstein-Fresnel lens configurations...")
+    psi_cohesion = np.abs(reference_beam)
+    rho_prob = np.ones((grid_size, grid_size)) * 0.98  # High probability density
+    
+    # Solve for localized space-time refractive metric
+    n_xyz = fresnel_engine.compute_spacetime_refractive_metric(psi_cohesion, rho_prob, chi_s=0.15)
+    
+    # Track stability evolution vector field (using an arbitrary H-factor of 0.7)
+    E_s = fresnel_engine.compute_stability_evolution_vector(E0=reference_beam, n_xyz=n_xyz, H_factor=0.7)
+
+    # ─── 4. EVANESCENT DECOUPLING & ISOLATION ───────────────────────────────
+    logger.info("🛡️ STAGE 3: Activating sub-wavelength evanescent isolation masks...")
+    # Compute attenuation constant to extinguish trailing non-propagating fields
+    alpha = decoupler.compute_attenuation_profile(refractive_index, incident_angle=np.pi/3, wavelength=1.55e-6)
+    isolated_field = decoupler.apply_quenching_filter(E_s, alpha)
+
+    # ─── 5. AI TENSOR OPTIMIZATION & RESONANCE ─────────────────────────────
+    logger.info("🧠 STAGE 4: Running continuous-variable optimization feedback...")
+    # Feed current state to the AI optimizer to extract corrective phase mask arrays
+    phase_mask = optimizer.optimize_metric_tensor(isolated_field, target_energy=0.9)
+    
+    # Verify constructive wave resonance inside the cavity boundaries
+    resonance_profile = solver.compute_resonance_profile(isolated_field, phase_mask)
+
+    # ─── 6. VACUUM ANCHORING & HYPERGRAPH EDGE COMPUTING ─────────────────────
+    logger.info("🌌 STAGE 5: Anchoring micro-gravity wells and generating hypergraph...")
+    # Calculate geometric correlation mapping to lattice nodes
+    aethel_correlation = anchor_engine.calculate_vacuum_correlation(isolated_field, phonon_pressure)
+    
+    # Deform local metric coordinates based on localized energy concentrations
+    gravity_wells = anchor_engine.generate_gravity_wells(aethel_correlation, n_xyz)
+    
+    # Compile the final continuous metrics into a discrete Wolfram Hypergraph
+    hypergraph = hyperedge_engine.generate_wolfram_hypergraph(gravity_wells, threshold=1.0e-15)
+    
+    logger.info(f"✨ SYSTEM NOMINAL: Loop complete. Resonance Stable: {resonance_profile['boundary_stable']}")
+    return hypergraph
 
 if __name__ == "__main__":
-    main()
+    final_hypergraph = run_fully_integrated_stack()
