@@ -3,7 +3,26 @@
 # ROLE: Real-Time Solid-State Compute Validation Runtime
 # ARCHITECTURE: Non-Von Neumann Gravity Well / Hologramy Pipeline
 # ──────────────────────────────────────────────────────────────────────────
-       from physics.fibrewise_topology_core import FibrewiseTopologyCore
+      from core.defect_monitor import DefectMonitor
+
+    # 1. Instantiate the geometric monitor at initialization
+    invariant_monitor = DefectMonitor(node_count=NODE_COUNT)
+
+    # 2. Inside the main processing frame step:
+    # Read the connection forms from the active fiber bundle profile to map phase anomalies
+    topological_charges = invariant_monitor.calculate_topological_charge(
+        base_space=bundle_profile["base_manifold_X"],
+        connection_forms=bundle_profile["connection_forms"]
+    )
+
+    # 3. Compute counter-stress vectors and apply them straight to the stable positions
+    restoration_stresses = invariant_monitor.compute_restoration_stresses(
+        base_space=topologically_stable_positions,
+        defect_charges=topological_charges
+    )
+
+    final_guaranteed_positions = topologically_stable_positions + restoration_stresses
+     from physics.fibrewise_topology_core import FibrewiseTopologyCore
 
     # 1. Initialize Ioan James's Fibre Bundle operator
     topological_engine = FibrewiseTopologyCore(node_count=NODE_COUNT)
