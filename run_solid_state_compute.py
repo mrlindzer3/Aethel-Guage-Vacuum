@@ -3,7 +3,24 @@
 # ROLE: Real-Time Solid-State Compute Validation Runtime
 # ARCHITECTURE: Non-Von Neumann Gravity Well / Hologramy Pipeline
 # ──────────────────────────────────────────────────────────────────────────
-      from core.defect_monitor import DefectMonitor
+         from core.edge_state_modulator import EdgeStateModulator
+
+    # 1. Instantiate the edge state modulator at initialization
+    edge_modulator = EdgeStateModulator(node_count=NODE_COUNT, boundary_radius_ratio=0.88)
+
+    # 2. Inside the main processing frame step (immediately before console rendering):
+    # Classify which nodes belong to the arithmetic bulk and which protect the boundary
+    phase_indices = edge_modulator.classify_bulk_boundary_correspondence(final_guaranteed_positions)
+    
+    # Apply the invariant chiral pathing to lock in edge state protection
+    fully_protected_positions = edge_modulator.inject_boundary_wavefront_protection(
+        base_space=final_guaranteed_positions,
+        phase_indices=phase_indices
+    )
+
+    # 3. Pass the fully protected positions to your terminal delta blitter
+    console_view.update_frame(fully_protected_positions)
+ from core.defect_monitor import DefectMonitor
 
     # 1. Instantiate the geometric monitor at initialization
     invariant_monitor = DefectMonitor(node_count=NODE_COUNT)
