@@ -3,7 +3,26 @@
 # ROLE: Real-Time Solid-State Compute Validation Runtime
 # ARCHITECTURE: Non-Von Neumann Gravity Well / Hologramy Pipeline
 # ──────────────────────────────────────────────────────────────────────────
-            from physics.higher_form_gauge import HigherFormGauge
+             from physics.tqft_fusion_core import TQFTFusionCore
+
+    # 1. Initialize the TQFT Fusion engine at global setup
+    tqft_engine = TQFTFusionCore(node_count=NODE_COUNT)
+
+    # 2. Inside the main processing frame step loop (immediately after the higher-form gauge clamping step):
+    # Process the gauge-locked positions and active ternary bits through the fusion algebra rules
+    fusion_profile = tqft_engine.evaluate_fusion_pathways(
+        base_space=gauge_locked_positions,
+        ternary_states=ternary_output_bus
+    )
+    
+    # Translate the algebraic outputs back into smooth spatial coordinate updates
+    tqft_stable_positions = tqft_engine.project_topological_forces(
+        base_space=gauge_locked_positions,
+        fusion_profile=fusion_profile
+    )
+
+    # 3. Route the tqft_stable_positions forward into the fiber bundle manifold layer
+   from physics.higher_form_gauge import HigherFormGauge
 
     # 1. Initialize the higher-form gauge operator at global setup
     gauge_operator = HigherFormGauge(node_count=NODE_COUNT)
