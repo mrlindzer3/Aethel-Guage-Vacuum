@@ -3,7 +3,26 @@
 # ROLE: Real-Time Solid-State Compute Validation Runtime
 # ARCHITECTURE: Non-Von Neumann Gravity Well / Hologramy Pipeline
 # ──────────────────────────────────────────────────────────────────────────
-           from physics.non_hermitian_core import NonHermitianCore
+            from physics.floquet_engine import FloquetEngine
+
+    # 1. Initialize the Floquet temporal modulator at global setup
+    floquet_driver = FloquetEngine(node_count=NODE_COUNT, driving_frequency=60.0)
+
+    # 2. Inside the main processing runtime frame step loop:
+    # Compute the effective Magnus expansion potential for the current time delta
+    floquet_profile = floquet_driver.compute_floquet_magnus_expansion(
+        base_space=nh_stabilized_positions,
+        dt=0.005  # 5ms internal frame interval step
+    )
+
+    # Apply the time-periodic localization adjustments straight to the coordinate matrix
+    floquet_locked_positions = floquet_driver.enforce_dynamic_localization(
+        base_space=nh_stabilized_positions,
+        floquet_profile=floquet_profile
+    )
+
+    # 3. Pass the floquet_locked_positions smoothly forward to the bulk-boundary classifier
+   from physics.non_hermitian_core import NonHermitianCore
 
     # 1. Instantiate the Non-Hermitian module at setup
     nh_quantum_engine = NonHermitianCore(node_count=NODE_COUNT)
