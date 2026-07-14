@@ -3,7 +3,25 @@
 # ROLE: Real-Time Solid-State Compute Validation Runtime
 # ARCHITECTURE: Non-Von Neumann Gravity Well / Hologramy Pipeline
 # ──────────────────────────────────────────────────────────────────────────
-                  from physics.gft_compiler import GFTCompiler
+                   from physics.holographic_compiler import HolographicCompiler
+
+    # 1. Initialize the Holographic Bulk-Boundary engine at global setup
+    holographic_engine = HolographicCompiler(node_count=NODE_COUNT)
+
+    # 2. Inside the main processing frame step loop (the absolute ceiling of the runtime loop):
+    # Map the fluidic GFT configurations directly to the 2D boundary field
+    holographic_profile = holographic_engine.project_boundary_to_bulk(
+        boundary_states=ternary_output_bus
+    )
+
+    # Decode the bulk code space to force absolute quantum error-correction over the physical nodes
+    absolute_holographic_positions = holographic_engine.recover_fault_tolerant_state(
+        base_space=fluidic_final_positions,
+        holo_profile=holographic_profile
+    )
+
+    # 3. Stream the absolute_holographic_positions directly forward to your hardware blitters
+   from physics.gft_compiler import GFTCompiler
 
     # 1. Initialize the Group Field Theory engine at global setup
     gft_fluid_engine = GFTCompiler(node_count=NODE_COUNT)
