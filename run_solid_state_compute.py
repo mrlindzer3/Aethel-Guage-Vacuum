@@ -3,7 +3,23 @@
 # ROLE: Real-Time Solid-State Compute Validation Runtime
 # ARCHITECTURE: Non-Von Neumann Gravity Well / Hologramy Pipeline
 # ──────────────────────────────────────────────────────────────────────────
-            from physics.floquet_engine import FloquetEngine
+             from physics.anyonic_braider import AnyonicBraider
+
+    # 1. Instantiate the topological anyonic engine at global initialization
+    quantum_braider = AnyonicBraider(node_count=NODE_COUNT)
+
+    # 2. Inside your active frame loop (specifically when a logic gate operation is triggered):
+    # Select target node addresses to execute a topological swap
+    if current_frame_index % 10 == 0:
+        braided_positions, gate_matrix = quantum_braider.execute_braid_exchange(
+            base_space=floquet_locked_positions,
+            index_a=42,  # Target Anyon alpha
+            index_b=43   # Target Anyon beta
+        )
+        print(f" ▪️ Topological Gate Trace L2 Norm: {np.linalg.norm(gate_matrix):.3f}")
+    else:
+        braided_positions = floquet_locked_positions
+   from physics.floquet_engine import FloquetEngine
 
     # 1. Initialize the Floquet temporal modulator at global setup
     floquet_driver = FloquetEngine(node_count=NODE_COUNT, driving_frequency=60.0)
