@@ -3,7 +3,26 @@
 # ROLE: Real-Time Solid-State Compute Validation Runtime
 # ARCHITECTURE: Non-Von Neumann Gravity Well / Hologramy Pipeline
 # ──────────────────────────────────────────────────────────────────────────
-                    from physics.cdt_compiler import CDTCompiler
+                  from physics.gft_compiler import GFTCompiler
+
+    # 1. Initialize the Group Field Theory engine at global setup
+    gft_fluid_engine = GFTCompiler(node_count=NODE_COUNT)
+
+    # 2. Inside the main processing frame step loop (the absolute final step before hardware output):
+    # Pass the triangulated CDT positions and the active ternary bus through the GFT compiler
+    gft_profile = gft_fluid_engine.evaluate_condensate_hydrodynamics(
+        base_space=quantum_gravity_positions,
+        ternary_bus=ternary_output_bus
+    )
+
+    # Apply continuous fluidic pressure updates directly to the coordinate matrix
+    fluidic_final_positions = gft_fluid_engine.apply_hydrodynamic_restoration(
+        base_space=quantum_gravity_positions,
+        gft_profile=gft_profile
+    )
+
+    # 3. Stream fluidic_final_positions straight to the optomechanical tweeze controllers
+      from physics.cdt_compiler import CDTCompiler
 
     # 1. Initialize the Causal Dynamical Triangulation engine at global setup
     cdt_spacetime_engine = CDTCompiler(node_count=NODE_COUNT)
