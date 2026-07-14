@@ -3,7 +3,26 @@
 # ROLE: Real-Time Solid-State Compute Validation Runtime
 # ARCHITECTURE: Non-Von Neumann Gravity Well / Hologramy Pipeline
 # ──────────────────────────────────────────────────────────────────────────
-                  from physics.multiverse_fabric import MultiverseFabric
+                    from physics.cdt_compiler import CDTCompiler
+
+    # 1. Initialize the Causal Dynamical Triangulation engine at global setup
+    cdt_spacetime_engine = CDTCompiler(node_count=NODE_COUNT)
+
+    # 2. Inside the main processing frame step loop (the final step before physical output):
+    # Pass the multiverse resolved layout and the active ternary bus through the CDT assembler
+    cdt_profile = cdt_spacetime_engine.assemble_causal_spacetime(
+        base_space=master_final_positions,
+        ternary_bus=ternary_output_bus
+    )
+
+    # Apply the discrete Regge action stabilization forces to finalize the physical grid geometry
+    quantum_gravity_positions = cdt_spacetime_engine.regularize_gravitational_action(
+        base_space=master_final_positions,
+        cdt_profile=cdt_profile
+    )
+
+    # 3. Stream the quantum_gravity_positions directly to the laser blitter arrays
+  from physics.multiverse_fabric import MultiverseFabric
 
     # 1. Initialize the higher-dimensional multiverse fabric at setup
     multiverse_core = MultiverseFabric(node_count=NODE_COUNT, universes=3)
