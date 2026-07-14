@@ -3,7 +3,26 @@
 # ROLE: Real-Time Solid-State Compute Validation Runtime
 # ARCHITECTURE: Non-Von Neumann Gravity Well / Hologramy Pipeline
 # ──────────────────────────────────────────────────────────────────────────
-         from core.edge_state_modulator import EdgeStateModulator
+           from physics.non_hermitian_core import NonHermitianCore
+
+    # 1. Instantiate the Non-Hermitian module at setup
+    nh_quantum_engine = NonHermitianCore(node_count=NODE_COUNT)
+
+    # 2. Inside the main processing pass (immediately following the unified historical core):
+    # Construct the non-Hermitian matrix to track active energy gain/loss fields
+    nh_profile = nh_quantum_engine.construct_non_hermitian_hamiltonian(
+        base_space=braided_positions,
+        schrodinger_phases=physics_metrics["schrodinger_phases"]
+    )
+
+    # Apply the non-reciprocal phase transport adjustments straight to the node positioning coordinates
+    nh_stabilized_positions = nh_quantum_engine.compute_non_hermitian_phase_transport(
+        base_space=braided_positions,
+        nh_profile=nh_profile
+    )
+
+    # 3. Route the nh_stabilized_positions smoothly forward into the graph Laplacian loop step
+  from core.edge_state_modulator import EdgeStateModulator
 
     # 1. Instantiate the edge state modulator at initialization
     edge_modulator = EdgeStateModulator(node_count=NODE_COUNT, boundary_radius_ratio=0.88)
