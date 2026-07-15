@@ -2,19 +2,37 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>AGV: Live Substrate Monitor</title>
+    <title>AGV: Live Control Portal</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #050505; color: #00ffcc; font-family: monospace; }
-        #hud { position: absolute; top: 10px; left: 10px; z-index: 100; background: rgba(0,0,0,0.8); padding: 15px; border: 1px solid #00ffcc; }
-        h1 { margin: 0 0 10px 0; font-size: 16px; text-transform: uppercase; letter-spacing: 2px; }
+        #hud { position: absolute; top: 15px; left: 15px; z-index: 100; background: rgba(5, 20, 20, 0.85); padding: 20px; border: 1px solid #00ffcc; border-radius: 8px; width: 300px; box-shadow: 0 0 15px rgba(0, 255, 204, 0.2); }
+        h1 { margin: 0 0 15px 0; font-size: 16px; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid #00ffcc; padding-bottom: 5px; }
+        .control-group { margin-bottom: 15px; }
+        label { display: block; font-size: 11px; margin-bottom: 5px; color: #a0ffd0; }
+        input[type="range"] { width: 100%; background: #102a2a; outline: none; border-radius: 4px; height: 6px; -webkit-appearance: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: #00ffcc; cursor: pointer; border-radius: 50%; }
+        .val-display { float: right; color: #ffffff; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
     <div id="hud">
-        <h1>Aethel-Gauge-Vacuum Portal</h1>
-        <div>Substrate Array: <span id="nodes">640</span> Nodes</div>
-        <div>System Status: <span style="color: #00ff00;">API ACTIVE</span></div>
+        <h1>AGV Portal Control</h1>
+        <div class="control-group">
+            <label>Immirzi Scale (Gamma): <span id="gamma-val" class="val-display">0.272</span></label>
+            <input type="range" id="gamma" min="0.1" max="1.0" step="0.01" value="0.272">
+        </div>
+        <div class="control-group">
+            <label>Refraction Multiplier: <span id="refract-val" class="val-display">1.0</span></label>
+            <input type="range" id="refract" min="0.5" max="3.0" step="0.1" value="1.0">
+        </div>
+        <div class="control-group">
+            <label>Substrate Gravity (G): <span id="gravity-val" class="val-display">1.0</span></label>
+            <input type="range" id="gravity" min="0.1" max="5.0" step="0.1" value="1.0">
+        </div>
+        <div style="font-size: 11px; border-top: 1px dashed #005544; padding-top: 10px;">
+            Status: <span style="color: #00ff00;">STABLE (LANDSCAPE)</span>
+        </div>
     </div>
 
     <script>
@@ -38,7 +56,7 @@
         gridHelper.position.y = -2;
         scene.add(gridHelper);
 
-        // Fetch data directly from our local FastAPI server endpoints
+        // Fetch loop to continuously poll coordinates and update the 3D particles
         async function updateSubstrate() {
             try {
                 const response = await fetch('http://127.0.0.1:8000/api/substrate');
@@ -52,9 +70,39 @@
                 }
                 posAttr.needsUpdate = true;
             } catch (err) {
-                console.log("Waiting for API server to wake up...");
+                console.log("Searching for live server...");
             }
         }
+
+        // Push Slider Configurations Up to the API in Real-Time
+        async function sendConfigChange() {
+            const gamma = document.getElementById("gamma").value;
+            const refract = document.getElementById("refract").value;
+            const gravity = document.getElementById("gravity").value;
+
+            document.getElementById("gamma-val").innerText = gamma;
+            document.getElementById("refract-val").innerText = refract;
+            document.getElementById("gravity-val").innerText = gravity;
+
+            try {
+                await fetch('http://127.0.0.1:8000/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        gamma: parseFloat(gamma),
+                        refractive_multiplier: parseFloat(refract),
+                        gravity_G: parseFloat(gravity)
+                    })
+                });
+            } catch (err) {
+                console.error("Transmission to API failed:", err);
+            }
+        }
+
+        // Hook sliders directly to the API writer
+        document.getElementById("gamma").addEventListener("input", sendConfigChange);
+        document.getElementById("refract").addEventListener("input", sendConfigChange);
+        document.getElementById("gravity").addEventListener("input", sendConfigChange);
 
         function animate() {
             requestAnimationFrame(animate);
@@ -63,91 +111,8 @@
         }
 
         animate();
-        setInterval(updateSubstrate, 50); // Streams smooth 20 FPS real-time data
+        setInterval(updateSubstrate, 50);
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-    </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Aethel-Gauge-Vacuum: Live Substrate Monitor</title>
-    <style>
-        body { margin: 0; overflow: hidden; background-color: #050505; color: #00ffcc; font-family: monospace; }
-        #hud { position: absolute; top: 10px; left: 10px; z-index: 100; background: rgba(0,0,0,0.8); padding: 15px; border: 1px solid #00ffcc; pointer-events: none; }
-        h1 { margin: 0 0 10px 0; font-size: 16px; text-transform: uppercase; letter-spacing: 2px; }
-    </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-</head>
-<body>
-    <div id="hud">
-        <h1>Aethel-Gauge-Vacuum</h1>
-        <div>Substrate Array: <span id="nodes">640</span> Nodes</div>
-        <div>RF Carrier: <span id="carrier">375.0 THz</span></div>
-        <div>System Status: <span style="color: #00ff00;">STABLE (LANDSCAPE)</span></div>
-    </div>
-
-    <script>
-        // Set up the Three.js Scene, Camera, and WebGL Renderer
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-
-        camera.position.z = 5;
-
-        // Create a Particle System to represent our 640 nodes
-        const geometry = new THREE.BufferGeometry();
-        const positions = new Float32Array(640 * 3);
-        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-        // Neon teal material to represent the holographic points
-        const material = new THREE.PointsMaterial({ color: 0x00ffcc, size: 0.08, transparent: true, opacity: 0.8 });
-        const particleSystem = new THREE.Points(geometry, material);
-        scene.add(particleSystem);
-
-        // Grid helper representing the projection boundary
-        const gridHelper = new THREE.GridHelper(10, 50, 0x005544, 0x002211);
-        gridHelper.position.y = -2;
-        scene.add(gridHelper);
-
-        // Fetch loop to read the live JSON output written by Python
-        async function updateSubstrate() {
-            try {
-                const response = await fetch('live_substrate_state.json?t=' + Date.now());
-                if (!response.ok) return;
-                const data = await response.json();
-
-                const posAttr = particleSystem.geometry.attributes.position;
-                const flatPositions = data.positions.flat();
-
-                for (let i = 0; i < flatPositions.length; i++) {
-                    posAttr.array[i] = flatPositions[i];
-                }
-                posAttr.needsUpdate = true;
-            } catch (err) {
-                // Fail silently until the python engine generates the first JSON file
-            }
-        }
-
-        // Animation Loop
-        function animate() {
-            requestAnimationFrame(animate);
-            particleSystem.rotation.y += 0.002; // Slow aesthetic spin
-            renderer.render(scene, camera);
-        }
-
-        animate();
-        setInterval(updateSubstrate, 50); // Poll local file at 20 FPS
-
-        // Handle window resizing
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
