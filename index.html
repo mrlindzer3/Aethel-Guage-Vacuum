@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Aethel-Gauge-Vacuum: Live Substrate Monitor</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #050505; color: #00ffcc; font-family: monospace; }
+        #hud { position: absolute; top: 10px; left: 10px; z-index: 100; background: rgba(0,0,0,0.8); padding: 15px; border: 1px solid #00ffcc; pointer-events: none; }
+        h1 { margin: 0 0 10px 0; font-size: 16px; text-transform: uppercase; letter-spacing: 2px; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <div id="hud">
+        <h1>Aethel-Gauge-Vacuum</h1>
+        <div>Substrate Array: <span id="nodes">640</span> Nodes</div>
+        <div>RF Carrier: <span id="carrier">375.0 THz</span></div>
+        <div>System Status: <span style="color: #00ff00;">STABLE (LANDSCAPE)</span></div>
+    </div>
+
+    <script>
+        // Set up the Three.js Scene, Camera, and WebGL Renderer
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        camera.position.z = 5;
+
+        // Create a Particle System to represent our 640 nodes
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(640 * 3);
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+        // Neon teal material to represent the holographic points
+        const material = new THREE.PointsMaterial({ color: 0x00ffcc, size: 0.08, transparent: true, opacity: 0.8 });
+        const particleSystem = new THREE.Points(geometry, material);
+        scene.add(particleSystem);
+
+        // Grid helper representing the projection boundary
+        const gridHelper = new THREE.GridHelper(10, 50, 0x005544, 0x002211);
+        gridHelper.position.y = -2;
+        scene.add(gridHelper);
+
+        // Fetch loop to read the live JSON output written by Python
+        async function updateSubstrate() {
+            try {
+                const response = await fetch('live_substrate_state.json?t=' + Date.now());
+                if (!response.ok) return;
+                const data = await response.json();
+
+                const posAttr = particleSystem.geometry.attributes.position;
+                const flatPositions = data.positions.flat();
+
+                for (let i = 0; i < flatPositions.length; i++) {
+                    posAttr.array[i] = flatPositions[i];
+                }
+                posAttr.needsUpdate = true;
+            } catch (err) {
+                // Fail silently until the python engine generates the first JSON file
+            }
+        }
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            particleSystem.rotation.y += 0.002; // Slow aesthetic spin
+            renderer.render(scene, camera);
+        }
+
+        animate();
+        setInterval(updateSubstrate, 50); // Poll local file at 20 FPS
+
+        // Handle window resizing
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
