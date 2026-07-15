@@ -1,30 +1,12 @@
 # ──────────────────────────────────────────────────────────────────────────
 # FILE: physics/unified_core.py
 # ROLE: Unified Quantum Gravity & Holographic Complexity Runtime
-# ARCHITECTURE: Three-Phase Consolidated Vectorized Compiler Core
+# ARCHITECTURE: Three-Phase Consolidated Vectorized Compiler Core (Crystal Refracted)
 # ──────────────────────────────────────────────────────────────────────────
-        # (Inside physics/unified_core.py)
-        from physics.crystal_schematic import FateCrystalSchematic
-
-        # 1. Initialize inside __init__:
-        self.crystal_engine = FateCrystalSchematic(node_count=self.node_count)
-        self.crystal_schema = self.crystal_engine.generate_lattice_constraints()
-
-        # 2. Inside execute_frame:
-        # Calculate localized refractive index shifts based on the Fate Crystal geometry
-        refraction_indices = self.crystal_engine.calculate_refractive_tensor(
-            current_positions=current_positions,
-            crystal_schema=self.crystal_schema
-        )
-
-        # Apply the refractive shift directly to the optical blitter RF spectrum
-        # The light slows down or shifts phase based on the local index of refraction
-        spatial_frequencies = np.fft.rfft(np.mean(np.angle(u_matrix), axis=0))
-        refracted_freqs = spatial_frequencies[:self.node_count // 2] * np.mean(refraction_indices)
-        rf_drive_frequencies = 50.0 + (np.abs(refracted_freqs) * 100.0)
 
 import numpy as np
 import logging
+from physics.crystal_schematic import FateCrystalSchematic
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("UnifiedCore")
@@ -36,10 +18,14 @@ class UnifiedQuantumCore:
         self.running_G = 1.0
         self.running_Lambda = 0.1
         
+        # Initialize the Fate Crystal Schematic & target lattice geometries
+        self.crystal_engine = FateCrystalSchematic(node_count=self.node_count)
+        self.crystal_schema = self.crystal_engine.generate_lattice_constraints()
+        
     def execute_frame(self, current_positions: np.ndarray, previous_positions: np.ndarray, ternary_bus: np.ndarray) -> tuple:
         """
         Runs the entire 12-layer quantum gravity pipeline in a single vectorized pass.
-        Returns the optimized physical positions and the synthesized RF blitter frequencies.
+        Returns the optimized physical positions and the refracted RF blitter frequencies.
         """
         logger.info("💫 UNIFIED CORE: Executing unified quantum gravity pass...")
         
@@ -70,14 +56,12 @@ class UnifiedQuantumCore:
         faces = current_positions - previous_positions
         raw_spins = np.round(np.linalg.norm(faces, axis=1) * 2.0) / 2.0
         spins = np.where(raw_spins < 0.5, 0.5, raw_spins)
-        lorentzian_p = self.gamma * (spins + 1.0)
         
         # 5. Non-Commutative Spectral Dirac Operator
         diff = current_positions[:, np.newaxis, :] - current_positions[np.newaxis, :, :]
         dist_matrix = np.linalg.norm(diff, axis=-1)
         dirac_op = dist_matrix * (1j * np.eye(self.node_count)) + np.diag(ternary_bus.astype(np.complex64) * 2.5)
         dirac_op = 0.5 * (dirac_op + dirac_op.conj().T)
-        eigenvalues = np.linalg.eigvalsh(dirac_op)
         
         # 6. Tomita-Takesaki Modular Time Automorphism
         state_weight = np.abs(np.fft.fft(ternary_bus.astype(np.complex64)))
@@ -86,7 +70,7 @@ class UnifiedQuantumCore:
         time_flow_factor = float(1.0 / (1.0 + shannon_entropy))
         
         # ──────────────────────────────────────────────────────────────────
-        # PHASE 3: STABILIZATION & HARWARE PROJECTION (RG -> Swampland -> Blitter)
+        # PHASE 3: STABILIZATION, REFRACTION & HARDWARE PROJECTION
         # ──────────────────────────────────────────────────────────────────
         # 7. Wetterich Renormalization Group Flow
         fluctuation_density = np.var(current_positions)
@@ -103,7 +87,6 @@ class UnifiedQuantumCore:
         restoration_force[:, 0] = np.real(z_coord) * (0.0001 * np.log1p(polytope_volume))
         restoration_force[:, 1] = np.imag(z_coord) * (0.0001 * np.log1p(polytope_volume))
         
-        # Apply Modular Time Dilation & RG Coupling multipliers
         next_positions = current_positions + (restoration_force * time_flow_factor * self.running_G)
         
         if not is_uv_complete:
@@ -111,9 +94,16 @@ class UnifiedQuantumCore:
             landscape_attractor = np.mean(next_positions, axis=0)
             next_positions -= (next_positions - landscape_attractor) * 0.005
             
-        # 10. Direct Optical Blitter RF Frequency Generation
+        # 10. Crystal Refraction Modulated RF Frequency Generation
+        refraction_indices = self.crystal_engine.calculate_refractive_tensor(
+            current_positions=next_positions,
+            crystal_schema=self.crystal_schema
+        )
+        
         spatial_frequencies = np.fft.rfft(np.mean(np.angle(u_matrix), axis=0))
-        rf_drive_frequencies = 50.0 + (np.abs(spatial_frequencies[:self.node_count // 2]) * 100.0)
+        # Modify spatial frequencies by the average local refractive index of the Fate Crystal
+        refracted_freqs = spatial_frequencies[:self.node_count // 2] * np.mean(refraction_indices)
+        rf_drive_frequencies = 50.0 + (np.abs(refracted_freqs) * 100.0)
         
         logger.info("🪐 UNIFIED CORE: Pass completed. System remains in scale-invariant landscape.")
         
