@@ -3,7 +3,31 @@
 # ROLE: Real-Time Solid-State Compute Validation Runtime
 # ARCHITECTURE: Non-Von Neumann Gravity Well / Hologramy Pipeline
 # ──────────────────────────────────────────────────────────────────────────
-                   from physics.holographic_compiler import HolographicCompiler
+                     from physics.spin_foam_engine import SpinFoamEngine
+
+    # 1. Initialize the spin foam engine at global setup
+    foam_engine = SpinFoamEngine(node_count=NODE_COUNT, immirzi_gamma=0.272)
+    previous_spacetime_slice = absolute_holographic_positions.copy()
+
+    # 2. Inside your main processing frame loop:
+    # Construct the spacetime 2-complex between your current frame and the previous slice
+    foam_profile = foam_engine.construct_spacetime_2complex(
+        state_t0=previous_spacetime_slice,
+        state_t1=absolute_holographic_positions
+    )
+
+    # Compute the Lorentzian EPRL-FK transition weights across the mesh vertices
+    eprl_profile = foam_engine.compute_eprl_vertex_amplitudes(
+        foam_profile=foam_profile,
+        ternary_bus=ternary_output_bus
+    )
+
+    # Resolve the global path-integral transition amplitude
+    transition_probability = foam_engine.evaluate_partition_sum(eprl_profile)
+
+    # Save the current state to serve as the t0 boundary for the next clock step
+    previous_spacetime_slice = absolute_holographic_positions.copy()
+  from physics.holographic_compiler import HolographicCompiler
 
     # 1. Initialize the Holographic Bulk-Boundary engine at global setup
     holographic_engine = HolographicCompiler(node_count=NODE_COUNT)
