@@ -8,7 +8,28 @@
 # ROLE: Tomita-Takesaki Modular Flow Type III_1 Algebra Compiler
 # ARCHITECTURE: Thermodynamic KMS State Time Generator
 # ──────────────────────────────────────────────────────────────────────────
-           from physics.swampland_compiler import SwamplandCompiler
+              from physics.blitter_compiler import BlitterCompiler
+
+    # 1. Initialize the Blitter Compiler at global setup
+    blitter_engine = BlitterCompiler(node_count=NODE_COUNT, carrier_frequency_thz=375.0)
+
+    # 2. Inside the main processing loop (the absolute final hardware boundary step):
+    # Compile the final homotopy proof positions and complexity metrics into RF frequencies
+    blitter_profile = blitter_engine.compile_blitter_frequencies(
+        univalent_positions=univalent_final_positions,
+        homotopy_profile=homotopy_profile
+    )
+
+    # Generate the 2D spatial phase mask for the SLM
+    active_phase_mask = blitter_engine.generate_blitter_phase_mask(
+        base_space=univalent_final_positions,
+        blitter_profile=blitter_profile
+    )
+
+    # 3. Hardware Write:
+    # write_to_slm_backplane(active_phase_mask)
+    # set_aod_frequencies(blitter_profile["rf_frequencies_mhz"])
+ from physics.swampland_compiler import SwamplandCompiler
 
     # 1. Initialize the Swampland Compiler at global setup
     swampland_engine = SwamplandCompiler(node_count=NODE_COUNT)
