@@ -1,0 +1,17 @@
+{
+  "system": {
+    "node_count": 640,
+    "target_frame_rate": 20
+  },
+  "physics": {
+    "immirzi_gamma": 0.272,
+    "carrier_frequency_thz": 375.0,
+    "swampland_distance_threshold": 10.0,
+    "uv_cutoff_lambda": 100.0
+  },
+  "output": {
+    "export_json": true,
+    "json_filename": "live_substrate_state.json",
+    "simulate_hardware": true
+  }
+}
