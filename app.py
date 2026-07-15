@@ -1,18 +1,19 @@
 # ──────────────────────────────────────────────────────────────────────────
 # FILE: app.py
-# ROLE: FastAPI WebSocket Server with Shockwave Event Handler
-# ARCHITECTURE: Persistent Async Bi-directional Stream Engine
+# ROLE: FastAPI WebSocket Server with Persistent Preset Management
+# ARCHITECTURE: Asynchronous State Streamer with Local JSON Storage
 # ──────────────────────────────────────────────────────────────────────────
 
 import numpy as np
 import asyncio
 import json
+import os
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from physics.unified_core import UnifiedQuantumCore
 
-app = FastAPI(title="Aethel-Gauge-Vacuum Interactive WebSocket Server")
+app = FastAPI(title="Aethel-Gauge-Vacuum Enterprise Server")
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,23 +28,49 @@ core_engine = UnifiedQuantumCore(node_count=NODE_COUNT)
 positions = np.random.normal(0.0, 1.0, (NODE_COUNT, 3))
 previous_positions = positions.copy()
 
-# Dynamic runtime configurations
+# Filepath for our persistent data store
+PRESETS_FILE = "presets.json"
+
+# Default system laws
 runtime_config = {
     "gamma": 0.272,
     "refractive_multiplier": 1.0,
     "gravity_G": 1.0,
-    "shockwave_active": False  # New transient state
+    "shockwave_active": False
 }
+
+def load_presets_from_disk() -> dict:
+    """Helper to read saved configurations safely from local storage."""
+    if not os.path.exists(PRESETS_FILE):
+        # Create default presets file if it doesn't exist
+        default_presets = {
+            "Default Core": {"gamma": 0.272, "refractive_multiplier": 1.0, "gravity_G": 1.0},
+            "Hyper-Gravity": {"gamma": 0.15, "refractive_multiplier": 0.8, "gravity_G": 4.5},
+            "Quantum Scramble": {"gamma": 0.95, "refractive_multiplier": 2.5, "gravity_G": 0.2}
+        }
+        with open(PRESETS_FILE, "w") as f:
+            json.dump(default_presets, f, indent=4)
+        return default_presets
+    try:
+        with open(PRESETS_FILE, "r") as f:
+            return json.load(f)
+    except Exception:
+        return {}
 
 @app.get("/")
 def serve_frontend():
     return FileResponse("index.html")
 
+@app.get("/api/presets")
+def get_presets():
+    """Returns all saved physical configuration presets."""
+    return load_presets_from_disk()
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     global positions, previous_positions, runtime_config
     await websocket.accept()
-    print("🔌 WEBSOCKET: Client connected to quantum control channel.")
+    print("🔌 WEBSOCKET: Client connected to persistent control stream.")
     
     try:
         async def receive_configs():
@@ -52,14 +79,24 @@ async def websocket_endpoint(websocket: WebSocket):
                 data = await websocket.receive_text()
                 payload = json.loads(data)
                 
-                # Handle continuous slider adjustments
-                runtime_config["gamma"] = float(payload.get("gamma", runtime_config["gamma"]))
-                runtime_config["refractive_multiplier"] = float(payload.get("refractive_multiplier", runtime_config["refractive_multiplier"]))
-                runtime_config["gravity_G"] = float(payload.get("gravity_G", runtime_config["gravity_G"]))
+                # Check if client is requesting a raw state update or saving a new preset
+                action = payload.get("action")
                 
-                # Handle transient shockwave button press
-                if payload.get("trigger_shockwave"):
-                    runtime_config["shockwave_active"] = True
+                if action == "update_state":
+                    runtime_config["gamma"] = float(payload.get("gamma", runtime_config["gamma"]))
+                    runtime_config["refractive_multiplier"] = float(payload.get("refractive_multiplier", runtime_config["refractive_multiplier"]))
+                    runtime_config["gravity_G"] = float(payload.get("gravity_G", runtime_config["gravity_G"]))
+                    if payload.get("trigger_shockwave"):
+                        runtime_config["shockwave_active"] = True
+                        
+                elif action == "save_preset":
+                    preset_name = payload.get("name")
+                    preset_data = payload.get("values")
+                    presets = load_presets_from_disk()
+                    presets[preset_name] = preset_data
+                    with open(PRESETS_FILE, "w") as f:
+                        json.dump(presets, f, indent=4)
+                    print(f"💾 STORAGE: Saved new preset '{preset_name}' to disk.")
 
         asyncio.create_task(receive_configs())
 
@@ -67,13 +104,10 @@ async def websocket_endpoint(websocket: WebSocket):
             core_engine.gamma = runtime_config["gamma"]
             core_engine.running_G = runtime_config["gravity_G"]
             
-            # Inject the shockwave state directly into our math bus if active
             ternary_input_bus = np.random.choice([-1, 0, 1], size=NODE_COUNT)
             if runtime_config["shockwave_active"]:
-                # Force maximum coherent polarization in the ternary array to feed the wormhole
                 ternary_input_bus = np.ones(NODE_COUNT)
             
-            # Run the unified physics pass
             positions, rf_frequencies = core_engine.execute_frame(
                 current_positions=positions,
                 previous_positions=previous_positions,
@@ -83,7 +117,6 @@ async def websocket_endpoint(websocket: WebSocket):
             
             adjusted_frequencies = rf_frequencies * runtime_config["refractive_multiplier"]
             
-            # Build the transmission packet
             frame_packet = {
                 "positions": positions.tolist(),
                 "rf_frequencies_mhz": adjusted_frequencies.tolist(),
@@ -96,14 +129,13 @@ async def websocket_endpoint(websocket: WebSocket):
             }
             await websocket.send_text(json.dumps(frame_packet))
             
-            # Reset shockwave immediately so it acts as a single, transient pulse
             if runtime_config["shockwave_active"]:
                 runtime_config["shockwave_active"] = False
                 
             await asyncio.sleep(0.05)
             
     except WebSocketDisconnect:
-        print("🔌 WEBSOCKET: Client disconnected cleanly.")
+        print("🔌 WEBSOCKET: Client disconnected.")
 
 if __name__ == "__main__":
     import uvicorn
