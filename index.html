@@ -2,22 +2,40 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>AGV: Real-Time WebSocket Portal</title>
+    <title>AGV: Advanced Telemetry Control Station</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #050505; color: #00ffcc; font-family: monospace; }
-        #hud { position: absolute; top: 15px; left: 15px; z-index: 100; background: rgba(5, 20, 20, 0.85); padding: 20px; border: 1px solid #00ffcc; border-radius: 8px; width: 300px; box-shadow: 0 0 15px rgba(0, 255, 204, 0.2); pointer-events: auto; }
-        h1 { margin: 0 0 15px 0; font-size: 16px; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid #00ffcc; padding-bottom: 5px; }
+        body { margin: 0; overflow: hidden; background-color: #030a0a; color: #00ffcc; font-family: monospace; }
+        
+        /* Floating Left Control Panel */
+        #hud { 
+            position: absolute; top: 15px; left: 15px; z-index: 100; 
+            background: rgba(5, 15, 15, 0.9); padding: 20px; 
+            border: 1px solid #00ffcc; border-radius: 8px; width: 280px; 
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.15); 
+        }
+        
+        /* Floating Right Analytics Chart Panel */
+        #analytics {
+            position: absolute; top: 15px; right: 15px; z-index: 100;
+            background: rgba(5, 15, 15, 0.9); padding: 20px;
+            border: 1px solid #00ffcc; border-radius: 8px; width: 350px;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.15);
+        }
+        
+        h1, h2 { margin: 0 0 15px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid #005544; padding-bottom: 5px; }
         .control-group { margin-bottom: 15px; }
-        label { display: block; font-size: 11px; margin-bottom: 5px; color: #a0ffd0; }
-        input[type="range"] { width: 100%; background: #102a2a; outline: none; border-radius: 4px; height: 6px; -webkit-appearance: none; }
+        label { display: block; font-size: 10px; margin-bottom: 5px; color: #a0ffd0; }
+        input[type="range"] { width: 100%; background: #081d1d; outline: none; border-radius: 4px; height: 6px; -webkit-appearance: none; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: #00ffcc; cursor: pointer; border-radius: 50%; }
         .val-display { float: right; color: #ffffff; }
+        canvas { background: #040d0d; border-radius: 4px; border: 1px solid #003322; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div id="hud">
-        <h1>AGV Live Telemetry</h1>
+        <h1>AGV Core Controls</h1>
         <div class="control-group">
             <label>Immirzi Scale (Gamma): <span id="gamma-val" class="val-display">0.272</span></label>
             <input type="range" id="gamma" min="0.1" max="1.0" step="0.01" value="0.272">
@@ -30,12 +48,18 @@
             <label>Substrate Gravity (G): <span id="gravity-val" class="val-display">1.0</span></label>
             <input type="range" id="gravity" min="0.1" max="5.0" step="0.1" value="1.0">
         </div>
-        <div style="font-size: 11px; border-top: 1px dashed #005544; padding-top: 10px;">
+        <div style="font-size: 10px;">
             Connection: <span id="conn-status" style="color: #ff3333;">CONNECTING...</span>
         </div>
     </div>
 
+    <div id="analytics">
+        <h2>Live Telemetry Stream</h2>
+        <canvas id="telemetryChart" width="350" height="200"></canvas>
+    </div>
+
     <script>
+        // --- 1. INITIALIZE THREE.JS GRAPHICS ---
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -52,11 +76,47 @@
         const particleSystem = new THREE.Points(geometry, material);
         scene.add(particleSystem);
 
-        const gridHelper = new THREE.GridHelper(10, 50, 0x005544, 0x002211);
+        const gridHelper = new THREE.GridHelper(10, 50, 0x003322, 0x001108);
         gridHelper.position.y = -2;
         scene.add(gridHelper);
 
-        // --- WEBSOCKET CONNECTION ESTABLISHMENT ---
+        // --- 2. INITIALIZE CHART.JS SCROLLING GRAPH ---
+        const ctx = document.getElementById('telemetryChart').getContext('2d');
+        const maxDataPoints = 30; // Max points visible on the scrolling chart
+        const telemetryChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array(maxDataPoints).fill(''),
+                datasets: [{
+                    label: 'RF Drive (MHz)',
+                    data: Array(maxDataPoints).fill(0),
+                    borderColor: '#00ffcc',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.3,
+                    yAxisID: 'y'
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: false, // Disable animations for ultra-fast, real-time rendering
+                scales: {
+                    x: { display: false },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        grid: { color: '#002211' },
+                        ticks: { color: '#a0ffd0', font: { family: 'monospace', size: 9 } }
+                    }
+                },
+                plugins: {
+                    legend: { labels: { color: '#00ffcc', font: { family: 'monospace', size: 10 } } }
+                }
+            }
+        });
+
+        // --- 3. ESTABLISH WEBSOCKET PIPELINE ---
         const ws = new WebSocket("ws://127.0.0.1:8000/ws");
 
         ws.onopen = () => {
@@ -66,13 +126,23 @@
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
+            
+            // Update 3D Coordinates
             const posAttr = particleSystem.geometry.attributes.position;
             const flatPositions = data.positions.flat();
-
             for (let i = 0; i < flatPositions.length; i++) {
                 posAttr.array[i] = flatPositions[i];
             }
             posAttr.needsUpdate = true;
+
+            // Calculate metrics for the scrolling chart
+            const freqs = data.rf_frequencies_mhz;
+            const avgRF = freqs.reduce((a, b) => a + b, 0) / freqs.length;
+
+            // Push new data points onto the scrolling chart
+            telemetryChart.data.datasets[0].data.push(avgRF);
+            telemetryChart.data.datasets[0].data.shift();
+            telemetryChart.update();
         };
 
         ws.onclose = () => {
