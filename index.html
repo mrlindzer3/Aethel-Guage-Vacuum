@@ -2,43 +2,49 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>AGV: Shockwave Event Portal</title>
+    <title>AGV: Enterprise Mission Control</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #030a0a; color: #00ffcc; font-family: monospace; transition: background-color 0.2s ease; }
         
         #hud { 
             position: absolute; top: 15px; left: 15px; z-index: 100; 
-            background: rgba(5, 15, 15, 0.9); padding: 20px; 
-            border: 1px solid #00ffcc; border-radius: 8px; width: 280px; 
+            background: rgba(5, 15, 15, 0.95); padding: 20px; 
+            border: 1px solid #00ffcc; border-radius: 8px; width: 290px; 
             box-shadow: 0 0 20px rgba(0, 255, 204, 0.15); 
         }
         
         #analytics {
             position: absolute; top: 15px; right: 15px; z-index: 100;
-            background: rgba(5, 15, 15, 0.9); padding: 20px;
+            background: rgba(5, 15, 15, 0.95); padding: 20px;
             border: 1px solid #00ffcc; border-radius: 8px; width: 350px;
             box-shadow: 0 0 20px rgba(0, 255, 204, 0.15);
         }
         
-        h1, h2 { margin: 0 0 15px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid #005544; padding-bottom: 5px; }
-        .control-group { margin-bottom: 15px; }
+        h1, h2, h3 { margin: 0 0 12px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid #005544; padding-bottom: 5px; }
+        h3 { font-size: 11px; margin-top: 15px; border-bottom: 1px dashed #003322; }
+        .control-group { margin-bottom: 12px; }
         label { display: block; font-size: 10px; margin-bottom: 5px; color: #a0ffd0; }
         input[type="range"] { width: 100%; background: #081d1d; outline: none; border-radius: 4px; height: 6px; -webkit-appearance: none; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: #00ffcc; cursor: pointer; border-radius: 50%; }
         .val-display { float: right; color: #ffffff; }
         canvas { background: #040d0d; border-radius: 4px; border: 1px solid #003322; }
 
-        /* Glowing Speculative Trigger Button */
-        #btn-shockwave {
-            width: 100%; padding: 12px; background: #002211; 
+        /* Buttons & Inputs */
+        button {
+            padding: 8px; background: #002211; 
             border: 1px solid #00ffcc; border-radius: 4px; 
-            color: #00ffcc; font-family: monospace; font-size: 11px; 
+            color: #00ffcc; font-family: monospace; font-size: 10px; 
             font-weight: bold; cursor: pointer; text-transform: uppercase;
-            letter-spacing: 1px; transition: all 0.2s ease;
-            box-shadow: 0 0 10px rgba(0, 255, 204, 0.1);
+            transition: all 0.2s ease; width: 100%; margin-bottom: 10px;
         }
-        #btn-shockwave:hover { background: #00ffcc; color: #030a0a; box-shadow: 0 0 20px rgba(0, 255, 204, 0.4); }
-        #btn-shockwave:active { transform: scale(0.98); }
+        button:hover { background: #00ffcc; color: #030a0a; box-shadow: 0 0 10px rgba(0, 255, 204, 0.3); }
+        
+        select, input[type="text"] {
+            width: 100%; background: #051515; border: 1px solid #005544;
+            color: #ffffff; font-family: monospace; font-size: 11px;
+            padding: 6px; border-radius: 4px; outline: none; box-sizing: border-box; margin-bottom: 10px;
+        }
+        select:focus, input[type="text"]:focus { border-color: #00ffcc; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -46,6 +52,7 @@
 <body>
     <div id="hud">
         <h1>AGV Core Controls</h1>
+        
         <div class="control-group">
             <label>Immirzi Scale (Gamma): <span id="gamma-val" class="val-display">0.272</span></label>
             <input type="range" id="gamma" min="0.1" max="1.0" step="0.01" value="0.272">
@@ -59,11 +66,22 @@
             <input type="range" id="gravity" min="0.1" max="5.0" step="0.1" value="1.0">
         </div>
         
-        <div class="control-group" style="margin-top: 20px; margin-bottom: 20px;">
-            <button id="btn-shockwave">Trigger Shockwave</button>
+        <button id="btn-shockwave" style="margin-top: 5px;">Trigger Shockwave</button>
+
+        <h3>Config Presets</h3>
+        <div class="control-group">
+            <label>Load Preset</label>
+            <select id="preset-selector">
+                <option value="" disabled selected>Select saved layout...</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>Save Current State As:</label>
+            <input type="text" id="preset-name-input" placeholder="e.g. My Gravity Field">
+            <button id="btn-save-preset">Save Preset</button>
         </div>
 
-        <div style="font-size: 10px;">
+        <div style="font-size: 10px; border-top: 1px dashed #005544; padding-top: 10px;">
             Connection: <span id="conn-status" style="color: #ff3333;">CONNECTING...</span>
         </div>
     </div>
@@ -74,7 +92,7 @@
     </div>
 
     <script>
-        // --- 1. INITIALIZE THREE.JS GRAPHICS ---
+        // --- 1. INITIALIZE THREE.JS ---
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -95,7 +113,7 @@
         gridHelper.position.y = -2;
         scene.add(gridHelper);
 
-        // --- 2. INITIALIZE CHART.JS SCROLLING GRAPH ---
+        // --- 2. INITIALIZE CHART.JS ---
         const ctx = document.getElementById('telemetryChart').getContext('2d');
         const maxDataPoints = 30;
         const telemetryChart = new Chart(ctx, {
@@ -133,10 +151,12 @@
 
         // --- 3. ESTABLISH WEBSOCKET PIPELINE ---
         const ws = new WebSocket("ws://127.0.0.1:8000/ws");
+        let activePresets = {};
 
         ws.onopen = () => {
             document.getElementById("conn-status").innerText = "CONNECTED (LIVE)";
             document.getElementById("conn-status").style.color = "#00ff00";
+            loadPresetsFromServer();
         };
 
         ws.onmessage = (event) => {
@@ -149,16 +169,12 @@
             }
             posAttr.needsUpdate = true;
 
-            // Chart telemetry calculation
             const freqs = data.rf_frequencies_mhz;
             const avgRF = freqs.reduce((a, b) => a + b, 0) / freqs.length;
 
-            // Visual feedback flash if the server confirms the shockwave was processed
             if (data.current_laws.shockwave_active) {
-                document.body.style.backgroundColor = "#0e021a"; // Cosmic purple flash
-                setTimeout(() => {
-                    document.body.style.backgroundColor = "#030a0a";
-                }, 150);
+                document.body.style.backgroundColor = "#0e021a";
+                setTimeout(() => { document.body.style.backgroundColor = "#030a0a"; }, 150);
             }
 
             telemetryChart.data.datasets[0].data.push(avgRF);
@@ -171,7 +187,63 @@
             document.getElementById("conn-status").style.color = "#ff3333";
         };
 
-        // Stream slider changes
+        // --- 4. PRESET PERSISTENCE IMPLEMENTATION ---
+        async function loadPresetsFromServer() {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/presets');
+                activePresets = await response.json();
+                
+                const selector = document.getElementById("preset-selector");
+                selector.innerHTML = '<option value="" disabled selected>Select saved layout...</option>';
+                
+                Object.keys(activePresets).forEach(name => {
+                    const opt = document.createElement("option");
+                    opt.value = name;
+                    opt.innerText = name;
+                    selector.appendChild(opt);
+                });
+            } catch (err) {
+                console.error("Error loading presets:", err);
+            }
+        }
+
+        // Apply a selected preset to the UI and transmit back up to the server
+        document.getElementById("preset-selector").addEventListener("change", (e) => {
+            const name = e.target.value;
+            const config = activePresets[name];
+            if (config) {
+                document.getElementById("gamma").value = config.gamma;
+                document.getElementById("refract").value = config.refractive_multiplier;
+                document.getElementById("gravity").value = config.gravity_G;
+                transmitSliderConfig();
+            }
+        });
+
+        // Save new preset
+        document.getElementById("btn-save-preset").addEventListener("click", () => {
+            const input = document.getElementById("preset-name-input");
+            const name = input.value.trim();
+            if (!name) return alert("Please enter a name for the preset.");
+            
+            const configValues = {
+                gamma: parseFloat(document.getElementById("gamma").value),
+                refractive_multiplier: parseFloat(document.getElementById("refract").value),
+                gravity_G: parseFloat(document.getElementById("gravity").value)
+            };
+
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    action: "save_preset",
+                    name: name,
+                    values: configValues
+                }));
+                input.value = "";
+                // Briefly reload dropdown
+                setTimeout(loadPresetsFromServer, 200);
+            }
+        });
+
+        // Continuous telemetry state transmission
         function transmitSliderConfig() {
             const gamma = document.getElementById("gamma").value;
             const refract = document.getElementById("refract").value;
@@ -183,6 +255,7 @@
 
             if (ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({
+                    action: "update_state",
                     gamma: parseFloat(gamma),
                     refractive_multiplier: parseFloat(refract),
                     gravity_G: parseFloat(gravity),
@@ -191,10 +264,10 @@
             }
         }
 
-        // Trigger Shockwave Event Transmitter
         document.getElementById("btn-shockwave").addEventListener("click", () => {
             if (ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({
+                    action: "update_state",
                     gamma: parseFloat(document.getElementById("gamma").value),
                     refractive_multiplier: parseFloat(document.getElementById("refract").value),
                     gravity_G: parseFloat(document.getElementById("gravity").value),
