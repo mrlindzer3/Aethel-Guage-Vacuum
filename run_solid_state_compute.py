@@ -1,5 +1,76 @@
 # ──────────────────────────────────────────────────────────────────────────
 # FILE: run_solid_state_compute.py
+# ROLE: Fully Autopoietic Self-Tuning Runtime Loop
+# ──────────────────────────────────────────────────────────────────────────
+
+import numpy as np
+import time
+import json
+import os
+from physics.unified_core import UnifiedQuantumCore
+from physics.hal_interface import HardwareAbstractionLayer
+from physics.partition_solver import PartitionSolver
+from physics.bootstrap_engine import AutopoieticEngine
+
+# Load initial configurations
+CONFIG_FILE = "config.json"
+with open(CONFIG_FILE, "r") as f:
+    cfg = json.load(f)
+
+NODE_COUNT = cfg["system"]["node_count"]
+positions = np.random.normal(0.0, 1.0, (NODE_COUNT, 3))
+previous_positions = positions.copy()
+
+# Initialize all layers
+core_engine = UnifiedQuantumCore(node_count=NODE_COUNT, immirzi_gamma=cfg["physics"]["immirzi_gamma"])
+partition_engine = PartitionSolver(node_count=NODE_COUNT)
+bootstrap_engine = AutopoieticEngine(config_path=CONFIG_FILE)
+hal = HardwareAbstractionLayer(node_count=NODE_COUNT)
+
+print("🚀 RUNTIME: Autopoietic Bootstrap Loop is active. System is now self-tuning...")
+
+try:
+    while True:
+        # 1. Hot-reload configuration changes made by the autopoietic engine
+        with open(CONFIG_FILE, "r") as f:
+            live_cfg = json.load(f)
+        core_engine.gamma = live_cfg["physics"]["immirzi_gamma"]
+        
+        ternary_input_bus = np.random.choice([-1, 0, 1], size=NODE_COUNT)
+        
+        # 2. Run physics
+        positions, rf_frequencies = core_engine.execute_frame(
+            current_positions=positions,
+            previous_positions=previous_positions,
+            ternary_bus=ternary_input_bus
+        )
+        previous_positions = positions.copy()
+        
+        # 3. Solve Partition Function and get Free Energy
+        partition_profile = partition_engine.calculate_partition_function(
+            complexity=1.2, spectral_action=0.8, rg_action=0.4
+        )
+        
+        # 4. Run Autopoietic feedback loop to optimize Immirzi scale
+        bootstrap_engine.optimize_system_laws(
+            free_energy=partition_profile["free_energy"],
+            current_gamma=core_engine.gamma
+        )
+        
+        # 5. Output to hardware and 3D visualizer stream
+        hal.simulate_hardware_write(positions, rf_frequencies)
+        json_payload = hal.export_to_json(positions, rf_frequencies)
+        
+        with open("temp_state.json", "w") as f:
+            f.write(json_payload)
+        os.replace("temp_state.json", live_cfg["output"]["json_filename"])
+            
+        time.sleep(1.0 / live_cfg["system"]["target_frame_rate"])
+
+except KeyboardInterrupt:
+    print("\nSystem execution halted.")
+# ──────────────────────────────────────────────────────────────────────────
+# FILE: run_solid_state_compute.py
 # ROLE: Production-Ready Hardware Control and Web Visualizer Streamer
 # ──────────────────────────────────────────────────────────────────────────
 
