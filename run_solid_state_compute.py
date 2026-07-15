@@ -8,7 +8,26 @@
 # ROLE: Tomita-Takesaki Modular Flow Type III_1 Algebra Compiler
 # ARCHITECTURE: Thermodynamic KMS State Time Generator
 # ──────────────────────────────────────────────────────────────────────────
-    from physics.amplituhedron_compiler import AmplituhedronCompiler
+        from physics.celestial_compiler import CelestialCompiler
+
+    # 1. Initialize the Celestial Conformal Compiler at global setup
+    celestial_engine = CelestialCompiler(node_count=NODE_COUNT)
+
+    # 2. Inside the main processing loop (following the Amplituhedron compilation):
+    # Map the Amplituhedron profile and the coordinates to the celestial sphere
+    celestial_profile = celestial_engine.compute_mellin_transform(
+        base_space=emergent_positions,
+        polytope_volume=polytope_profile["volume"]
+    )
+
+    # Apply infinite-dimensional BMS supertranslation corrections to the physical nodes
+    celestial_final_positions = celestial_engine.project_bms_restoration(
+        base_space=emergent_positions,
+        celestial_profile=celestial_profile
+    )
+
+    # 3. Stream celestial_final_positions directly forward to your hardware controllers.
+from physics.amplituhedron_compiler import AmplituhedronCompiler
 
     # 1. Initialize the Amplituhedron Compiler at global setup
     amplituhedron_engine = AmplituhedronCompiler(node_count=NODE_COUNT)
