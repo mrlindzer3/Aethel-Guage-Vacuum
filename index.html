@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>AGV: Live Control Portal</title>
+    <title>AGV: Real-Time WebSocket Portal</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #050505; color: #00ffcc; font-family: monospace; }
-        #hud { position: absolute; top: 15px; left: 15px; z-index: 100; background: rgba(5, 20, 20, 0.85); padding: 20px; border: 1px solid #00ffcc; border-radius: 8px; width: 300px; box-shadow: 0 0 15px rgba(0, 255, 204, 0.2); }
+        #hud { position: absolute; top: 15px; left: 15px; z-index: 100; background: rgba(5, 20, 20, 0.85); padding: 20px; border: 1px solid #00ffcc; border-radius: 8px; width: 300px; box-shadow: 0 0 15px rgba(0, 255, 204, 0.2); pointer-events: auto; }
         h1 { margin: 0 0 15px 0; font-size: 16px; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid #00ffcc; padding-bottom: 5px; }
         .control-group { margin-bottom: 15px; }
         label { display: block; font-size: 11px; margin-bottom: 5px; color: #a0ffd0; }
@@ -17,7 +17,7 @@
 </head>
 <body>
     <div id="hud">
-        <h1>AGV Portal Control</h1>
+        <h1>AGV Live Telemetry</h1>
         <div class="control-group">
             <label>Immirzi Scale (Gamma): <span id="gamma-val" class="val-display">0.272</span></label>
             <input type="range" id="gamma" min="0.1" max="1.0" step="0.01" value="0.272">
@@ -31,7 +31,7 @@
             <input type="range" id="gravity" min="0.1" max="5.0" step="0.1" value="1.0">
         </div>
         <div style="font-size: 11px; border-top: 1px dashed #005544; padding-top: 10px;">
-            Status: <span style="color: #00ff00;">STABLE (LANDSCAPE)</span>
+            Connection: <span id="conn-status" style="color: #ff3333;">CONNECTING...</span>
         </div>
     </div>
 
@@ -56,26 +56,32 @@
         gridHelper.position.y = -2;
         scene.add(gridHelper);
 
-        // Fetch loop to continuously poll coordinates and update the 3D particles
-        async function updateSubstrate() {
-            try {
-                const response = await fetch('http://127.0.0.1:8000/api/substrate');
-                const data = await response.json();
+        // --- WEBSOCKET CONNECTION ESTABLISHMENT ---
+        const ws = new WebSocket("ws://127.0.0.1:8000/ws");
 
-                const posAttr = particleSystem.geometry.attributes.position;
-                const flatPositions = data.positions.flat();
+        ws.onopen = () => {
+            document.getElementById("conn-status").innerText = "CONNECTED (LIVE)";
+            document.getElementById("conn-status").style.color = "#00ff00";
+        };
 
-                for (let i = 0; i < flatPositions.length; i++) {
-                    posAttr.array[i] = flatPositions[i];
-                }
-                posAttr.needsUpdate = true;
-            } catch (err) {
-                console.log("Searching for live server...");
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            const posAttr = particleSystem.geometry.attributes.position;
+            const flatPositions = data.positions.flat();
+
+            for (let i = 0; i < flatPositions.length; i++) {
+                posAttr.array[i] = flatPositions[i];
             }
-        }
+            posAttr.needsUpdate = true;
+        };
 
-        // Push Slider Configurations Up to the API in Real-Time
-        async function sendConfigChange() {
+        ws.onclose = () => {
+            document.getElementById("conn-status").innerText = "DISCONNECTED";
+            document.getElementById("conn-status").style.color = "#ff3333";
+        };
+
+        // Stream slider changes back up to Python over the same WebSocket
+        function transmitSliderConfig() {
             const gamma = document.getElementById("gamma").value;
             const refract = document.getElementById("refract").value;
             const gravity = document.getElementById("gravity").value;
@@ -84,25 +90,18 @@
             document.getElementById("refract-val").innerText = refract;
             document.getElementById("gravity-val").innerText = gravity;
 
-            try {
-                await fetch('http://127.0.0.1:8000/api/config', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        gamma: parseFloat(gamma),
-                        refractive_multiplier: parseFloat(refract),
-                        gravity_G: parseFloat(gravity)
-                    })
-                });
-            } catch (err) {
-                console.error("Transmission to API failed:", err);
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    gamma: parseFloat(gamma),
+                    refractive_multiplier: parseFloat(refract),
+                    gravity_G: parseFloat(gravity)
+                }));
             }
         }
 
-        // Hook sliders directly to the API writer
-        document.getElementById("gamma").addEventListener("input", sendConfigChange);
-        document.getElementById("refract").addEventListener("input", sendConfigChange);
-        document.getElementById("gravity").addEventListener("input", sendConfigChange);
+        document.getElementById("gamma").addEventListener("input", transmitSliderConfig);
+        document.getElementById("refract").addEventListener("input", transmitSliderConfig);
+        document.getElementById("gravity").addEventListener("input", transmitSliderConfig);
 
         function animate() {
             requestAnimationFrame(animate);
@@ -111,7 +110,6 @@
         }
 
         animate();
-        setInterval(updateSubstrate, 50);
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
