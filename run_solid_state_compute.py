@@ -8,6 +8,25 @@
 # ROLE: Tomita-Takesaki Modular Flow Type III_1 Algebra Compiler
 # ARCHITECTURE: Thermodynamic KMS State Time Generator
 # ──────────────────────────────────────────────────────────────────────────
+    from physics.amplituhedron_compiler import AmplituhedronCompiler
+
+    # 1. Initialize the Amplituhedron Compiler at global setup
+    amplituhedron_engine = AmplituhedronCompiler(node_count=NODE_COUNT)
+
+    # 2. Inside the main processing loop (after the modular time calculation):
+    # Compile the thermodynamic coordinates and active ternary bus into the Positive Grassmannian
+    polytope_profile = amplituhedron_engine.compile_positive_polytope(
+        base_space=thermodynamic_final_positions,
+        ternary_bus=ternary_output_bus
+    )
+
+    # Calculate the emergent physical positions from the polytope's volume
+    emergent_positions = amplituhedron_engine.project_emergent_spacetime(
+        base_space=thermodynamic_final_positions,
+        polytope_profile=polytope_profile
+    )
+
+    # 3. Stream emergent_positions directly forward to the physical hardware controllers.
 
 import numpy as np
 import logging
