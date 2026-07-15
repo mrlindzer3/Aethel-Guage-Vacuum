@@ -8,7 +8,30 @@
 # ROLE: Tomita-Takesaki Modular Flow Type III_1 Algebra Compiler
 # ARCHITECTURE: Thermodynamic KMS State Time Generator
 # ──────────────────────────────────────────────────────────────────────────
-        from physics.celestial_compiler import CelestialCompiler
+           from physics.swampland_compiler import SwamplandCompiler
+
+    # 1. Initialize the Swampland Compiler at global setup
+    swampland_engine = SwamplandCompiler(node_count=NODE_COUNT)
+    previous_positions_cache = celestial_final_positions.copy()
+
+    # 2. Inside the main processing loop (the final step of the frame):
+    # Test the current celestial states against the UV-completeness bounds
+    swampland_profile = swampland_engine.evaluate_swampland_criteria(
+        base_space=celestial_final_positions,
+        previous_space=previous_positions_cache
+    )
+
+    # Project the final coordinates back to the safe, consistent Landscape
+    landscape_safe_positions = swampland_engine.project_to_landscape(
+        base_space=celestial_final_positions,
+        swampland_profile=swampland_profile
+    )
+
+    # Save cache for the next distance evaluation frame
+    previous_positions_cache = landscape_safe_positions.copy()
+
+    # 3. Stream landscape_safe_positions directly to your hardware controllers.
+ from physics.celestial_compiler import CelestialCompiler
 
     # 1. Initialize the Celestial Conformal Compiler at global setup
     celestial_engine = CelestialCompiler(node_count=NODE_COUNT)
