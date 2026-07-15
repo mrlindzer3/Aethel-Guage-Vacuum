@@ -1,5 +1,65 @@
 # ──────────────────────────────────────────────────────────────────────────
 # FILE: run_solid_state_compute.py
+# ROLE: Production-Ready Hardware Control and Web Visualizer Streamer
+# ──────────────────────────────────────────────────────────────────────────
+
+import numpy as np
+import time
+import json
+import os
+from physics.unified_core import UnifiedQuantumCore
+from physics.hal_interface import HardwareAbstractionLayer
+
+# Load configurations safely from local JSON file
+with open("config.json", "r") as config_file:
+    cfg = json.load(config_file)
+
+NODE_COUNT = cfg["system"]["node_count"]
+FRAME_DELAY = 1.0 / cfg["system"]["target_frame_rate"]
+
+# Initialize physical arrays
+positions = np.random.normal(0.0, 1.0, (NODE_COUNT, 3))
+previous_positions = positions.copy()
+
+# Initialize core physics and output hardware interface
+core_engine = UnifiedQuantumCore(
+    node_count=NODE_COUNT, 
+    immirzi_gamma=cfg["physics"]["immirzi_gamma"]
+)
+hal = HardwareAbstractionLayer(node_count=NODE_COUNT)
+
+print("🚀 RUNTIME: System is fully operational and awaiting local visualizer...")
+
+try:
+    while True:
+        ternary_input_bus = np.random.choice([-1, 0, 1], size=NODE_COUNT)
+        
+        # Calculate unified quantum dynamics
+        positions, rf_frequencies = core_engine.execute_frame(
+            current_positions=positions,
+            previous_positions=previous_positions,
+            ternary_bus=ternary_input_bus
+        )
+        previous_positions = positions.copy()
+        
+        # Output to terminal emulator simulation
+        if cfg["output"]["simulate_hardware"]:
+            hal.simulate_hardware_write(positions, rf_frequencies)
+        
+        # Export state to the hot-swapped web visualization JSON
+        if cfg["output"]["export_json"]:
+            json_payload = hal.export_to_json(positions, rf_frequencies)
+            # Write to a temp file first, then rename, to avoid race conditions with the web browser
+            with open("temp_state.json", "w") as f:
+                f.write(json_payload)
+            os.replace("temp_state.json", cfg["output"]["json_filename"])
+            
+        time.sleep(FRAME_DELAY)
+
+except KeyboardInterrupt:
+    print("\nExecution halted. Substrate safely de-energized.")
+# ──────────────────────────────────────────────────────────────────────────
+# FILE: run_solid_state_compute.py
 # ROLE: Operational Hardware Control Loop & Export
 # ──────────────────────────────────────────────────────────────────────────
 
