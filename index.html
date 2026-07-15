@@ -47,7 +47,44 @@
         select:focus, input[type="text"]:focus { border-color: #00ffcc; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            const posAttr = particleSystem.geometry.attributes.position;
+            const flatPositions = data.positions.flat();
+            for (let i = 0; i < flatPositions.length; i++) {
+                posAttr.array[i] = flatPositions[i];
+            }
+            posAttr.needsUpdate = true;
+
+            const freqs = data.rf_frequencies_mhz;
+            const avgRF = freqs.reduce((a, b) => a + b, 0) / freqs.length;
+
+            if (data.current_laws.shockwave_active) {
+                document.body.style.backgroundColor = "#0e021a";
+                setTimeout(() => { document.body.style.backgroundColor = "#030a0a"; }, 150);
+            }
+
+            // --- ──────────────────────────────────────────────────────────
+            // UPDATE METCALFE-REED HUD METRICS
+            // --- ──────────────────────────────────────────────────────────
+            if (data.network_metrics) {
+                document.getElementById("net-mode").innerText = data.network_metrics.mode;
+                document.getElementById("reed-potential").innerText = data.network_metrics.reed_log_potential.toFixed(2);
+                
+                // Color highlight for Reed Cluster mode
+                if (data.network_metrics.mode === "REED_CLUSTER") {
+                    document.getElementById("net-mode").style.color = "#ff00ff"; // Holographic pink
+                } else {
+                    document.getElementById("net-mode").style.color = "#00ffcc"; // Classic cyan
+                }
+            }
+
+            telemetryChart.data.datasets[0].data.push(avgRF);
+            telemetryChart.data.datasets[0].data.shift();
+            telemetryChart.update();
+        };
+
 </head>
 <body>
     <div id="hud">
