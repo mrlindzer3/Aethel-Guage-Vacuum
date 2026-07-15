@@ -2,11 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>AGV: Advanced Telemetry Control Station</title>
+    <title>AGV: Shockwave Event Portal</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #030a0a; color: #00ffcc; font-family: monospace; }
+        body { margin: 0; overflow: hidden; background-color: #030a0a; color: #00ffcc; font-family: monospace; transition: background-color 0.2s ease; }
         
-        /* Floating Left Control Panel */
         #hud { 
             position: absolute; top: 15px; left: 15px; z-index: 100; 
             background: rgba(5, 15, 15, 0.9); padding: 20px; 
@@ -14,7 +13,6 @@
             box-shadow: 0 0 20px rgba(0, 255, 204, 0.15); 
         }
         
-        /* Floating Right Analytics Chart Panel */
         #analytics {
             position: absolute; top: 15px; right: 15px; z-index: 100;
             background: rgba(5, 15, 15, 0.9); padding: 20px;
@@ -29,6 +27,18 @@
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: #00ffcc; cursor: pointer; border-radius: 50%; }
         .val-display { float: right; color: #ffffff; }
         canvas { background: #040d0d; border-radius: 4px; border: 1px solid #003322; }
+
+        /* Glowing Speculative Trigger Button */
+        #btn-shockwave {
+            width: 100%; padding: 12px; background: #002211; 
+            border: 1px solid #00ffcc; border-radius: 4px; 
+            color: #00ffcc; font-family: monospace; font-size: 11px; 
+            font-weight: bold; cursor: pointer; text-transform: uppercase;
+            letter-spacing: 1px; transition: all 0.2s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.1);
+        }
+        #btn-shockwave:hover { background: #00ffcc; color: #030a0a; box-shadow: 0 0 20px rgba(0, 255, 204, 0.4); }
+        #btn-shockwave:active { transform: scale(0.98); }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -48,6 +58,11 @@
             <label>Substrate Gravity (G): <span id="gravity-val" class="val-display">1.0</span></label>
             <input type="range" id="gravity" min="0.1" max="5.0" step="0.1" value="1.0">
         </div>
+        
+        <div class="control-group" style="margin-top: 20px; margin-bottom: 20px;">
+            <button id="btn-shockwave">Trigger Shockwave</button>
+        </div>
+
         <div style="font-size: 10px;">
             Connection: <span id="conn-status" style="color: #ff3333;">CONNECTING...</span>
         </div>
@@ -82,7 +97,7 @@
 
         // --- 2. INITIALIZE CHART.JS SCROLLING GRAPH ---
         const ctx = document.getElementById('telemetryChart').getContext('2d');
-        const maxDataPoints = 30; // Max points visible on the scrolling chart
+        const maxDataPoints = 30;
         const telemetryChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -99,7 +114,7 @@
             },
             options: {
                 responsive: true,
-                animation: false, // Disable animations for ultra-fast, real-time rendering
+                animation: false,
                 scales: {
                     x: { display: false },
                     y: {
@@ -127,7 +142,6 @@
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
             
-            // Update 3D Coordinates
             const posAttr = particleSystem.geometry.attributes.position;
             const flatPositions = data.positions.flat();
             for (let i = 0; i < flatPositions.length; i++) {
@@ -135,11 +149,18 @@
             }
             posAttr.needsUpdate = true;
 
-            // Calculate metrics for the scrolling chart
+            // Chart telemetry calculation
             const freqs = data.rf_frequencies_mhz;
             const avgRF = freqs.reduce((a, b) => a + b, 0) / freqs.length;
 
-            // Push new data points onto the scrolling chart
+            // Visual feedback flash if the server confirms the shockwave was processed
+            if (data.current_laws.shockwave_active) {
+                document.body.style.backgroundColor = "#0e021a"; // Cosmic purple flash
+                setTimeout(() => {
+                    document.body.style.backgroundColor = "#030a0a";
+                }, 150);
+            }
+
             telemetryChart.data.datasets[0].data.push(avgRF);
             telemetryChart.data.datasets[0].data.shift();
             telemetryChart.update();
@@ -150,7 +171,7 @@
             document.getElementById("conn-status").style.color = "#ff3333";
         };
 
-        // Stream slider changes back up to Python over the same WebSocket
+        // Stream slider changes
         function transmitSliderConfig() {
             const gamma = document.getElementById("gamma").value;
             const refract = document.getElementById("refract").value;
@@ -164,10 +185,23 @@
                 ws.send(JSON.stringify({
                     gamma: parseFloat(gamma),
                     refractive_multiplier: parseFloat(refract),
-                    gravity_G: parseFloat(gravity)
+                    gravity_G: parseFloat(gravity),
+                    trigger_shockwave: false
                 }));
             }
         }
+
+        // Trigger Shockwave Event Transmitter
+        document.getElementById("btn-shockwave").addEventListener("click", () => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    gamma: parseFloat(document.getElementById("gamma").value),
+                    refractive_multiplier: parseFloat(document.getElementById("refract").value),
+                    gravity_G: parseFloat(document.getElementById("gravity").value),
+                    trigger_shockwave: true
+                }));
+            }
+        });
 
         document.getElementById("gamma").addEventListener("input", transmitSliderConfig);
         document.getElementById("refract").addEventListener("input", transmitSliderConfig);
