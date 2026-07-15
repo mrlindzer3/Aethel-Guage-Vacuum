@@ -3,7 +3,26 @@
 # ROLE: Real-Time Solid-State Compute Validation Runtime
 # ARCHITECTURE: Non-Von Neumann Gravity Well / Hologramy Pipeline
 # ──────────────────────────────────────────────────────────────────────────
-                   from physics.rg_flow_compiler import RGFlowCompiler
+                      from physics.spectral_compiler import SpectralCompiler
+
+    # 1. Initialize the Non-Commutative Spectral Compiler at global setup
+    spectral_compiler = SpectralCompiler(node_count=NODE_COUNT)
+
+    # 2. Inside the main processing frame step loop:
+    # Compute the Dirac operator and spectral action from the RG-stabilized positions
+    spectral_profile = spectral_compiler.compute_spectral_action(
+        base_space=fixed_point_positions,
+        ternary_bus=ternary_output_bus
+    )
+
+    # Project the spectral metric invariants back to coordinate coordinates
+    spectral_final_positions = spectral_compiler.project_spectral_metric(
+        base_space=fixed_point_positions,
+        spectral_profile=spectral_profile
+    )
+
+    # 3. Stream spectral_final_positions directly forward to the physical controllers
+ from physics.rg_flow_compiler import RGFlowCompiler
 
     # 1. Initialize the RG flow compiler at global setup
     rg_compiler = RGFlowCompiler(node_count=NODE_COUNT)
