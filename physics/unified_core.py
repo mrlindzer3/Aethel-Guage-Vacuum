@@ -3,6 +3,25 @@
 # ROLE: Unified Quantum Gravity & Holographic Complexity Runtime
 # ARCHITECTURE: Three-Phase Consolidated Vectorized Compiler Core
 # ──────────────────────────────────────────────────────────────────────────
+        # (Inside physics/unified_core.py)
+        from physics.crystal_schematic import FateCrystalSchematic
+
+        # 1. Initialize inside __init__:
+        self.crystal_engine = FateCrystalSchematic(node_count=self.node_count)
+        self.crystal_schema = self.crystal_engine.generate_lattice_constraints()
+
+        # 2. Inside execute_frame:
+        # Calculate localized refractive index shifts based on the Fate Crystal geometry
+        refraction_indices = self.crystal_engine.calculate_refractive_tensor(
+            current_positions=current_positions,
+            crystal_schema=self.crystal_schema
+        )
+
+        # Apply the refractive shift directly to the optical blitter RF spectrum
+        # The light slows down or shifts phase based on the local index of refraction
+        spatial_frequencies = np.fft.rfft(np.mean(np.angle(u_matrix), axis=0))
+        refracted_freqs = spatial_frequencies[:self.node_count // 2] * np.mean(refraction_indices)
+        rf_drive_frequencies = 50.0 + (np.abs(refracted_freqs) * 100.0)
 
 import numpy as np
 import logging
