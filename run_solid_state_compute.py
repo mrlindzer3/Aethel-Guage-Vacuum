@@ -3,7 +3,26 @@
 # ROLE: Real-Time Solid-State Compute Validation Runtime
 # ARCHITECTURE: Non-Von Neumann Gravity Well / Hologramy Pipeline
 # ──────────────────────────────────────────────────────────────────────────
-                     from physics.spin_foam_engine import SpinFoamEngine
+                   from physics.rg_flow_compiler import RGFlowCompiler
+
+    # 1. Initialize the RG flow compiler at global setup
+    rg_compiler = RGFlowCompiler(node_count=NODE_COUNT)
+
+    # 2. Inside the main processing frame step loop (the final step of the execution frame):
+    # Compute the running couplings under the Wetterich flow for the current frame
+    rg_profile = rg_compiler.compute_wetterich_flow(
+        base_space=absolute_holographic_positions,
+        energy_scale_k=100.0  # High-energy UV scale evaluation
+    )
+
+    # Force the physical positions to project directly onto the UV fixed point
+    fixed_point_positions = rg_compiler.enforce_fixed_point_projection(
+        base_space=absolute_holographic_positions,
+        rg_profile=rg_profile
+    )
+
+    # 3. Stream the fixed_point_positions straight to your hardware optical tweezers
+      from physics.spin_foam_engine import SpinFoamEngine
 
     # 1. Initialize the spin foam engine at global setup
     foam_engine = SpinFoamEngine(node_count=NODE_COUNT, immirzi_gamma=0.272)
