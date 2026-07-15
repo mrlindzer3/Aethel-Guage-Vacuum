@@ -1,16 +1,18 @@
 # ──────────────────────────────────────────────────────────────────────────
 # FILE: app.py
-# ROLE: FastAPI Bidirectional API Server
-# ARCHITECTURE: Read/Write State Controller
+# ROLE: FastAPI WebSocket Server
+# ARCHITECTURE: Persistent Async Bi-directional Stream Engine
 # ──────────────────────────────────────────────────────────────────────────
 
 import numpy as np
-from fastapi import FastAPI, Body
+import asyncio
+import json
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from physics.unified_core import UnifiedQuantumCore
 
-app = FastAPI(title="Aethel-Gauge-Vacuum Interactive API")
+app = FastAPI(title="Aethel-Gauge-Vacuum WebSocket Server")
 
 app.add_middleware(
     CORSMiddleware,
@@ -25,7 +27,7 @@ core_engine = UnifiedQuantumCore(node_count=NODE_COUNT)
 positions = np.random.normal(0.0, 1.0, (NODE_COUNT, 3))
 previous_positions = positions.copy()
 
-# Dynamic runtime configurations that the browser can update
+# Thread-safe global configurations
 runtime_config = {
     "gamma": 0.272,
     "refractive_multiplier": 1.0,
@@ -36,42 +38,56 @@ runtime_config = {
 def serve_frontend():
     return FileResponse("index.html")
 
-@app.get("/api/substrate")
-def get_substrate_data():
-    """Generates next frame applying the dynamic runtime configs."""
-    global positions, previous_positions
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """Establishes a persistent WebSocket tunnel for real-time telemetry."""
+    global positions, previous_positions, runtime_config
+    await websocket.accept()
+    print("🔌 WEBSOCKET: Client connection established.")
     
-    # Dynamic parameter injection
-    core_engine.gamma = runtime_config["gamma"]
-    core_engine.running_G = runtime_config["gravity_G"]
-    
-    ternary_input_bus = np.random.choice([-1, 0, 1], size=NODE_COUNT)
-    
-    positions, rf_frequencies = core_engine.execute_frame(
-        current_positions=positions,
-        previous_positions=previous_positions,
-        ternary_bus=ternary_input_bus
-    )
-    previous_positions = positions.copy()
-    
-    # Scale frequencies by user's refractive multiplier
-    adjusted_frequencies = rf_frequencies * runtime_config["refractive_multiplier"]
-    
-    return {
-        "status": "STABLE_LANDSCAPE",
-        "positions": positions.tolist(),
-        "rf_frequencies_mhz": adjusted_frequencies.tolist(),
-        "current_laws": runtime_config
-    }
+    try:
+        # Task to listen for incoming configuration updates from the browser
+        async def receive_configs():
+            global runtime_config
+            while True:
+                data = await websocket.receive_text()
+                payload = json.loads(data)
+                runtime_config["gamma"] = float(payload.get("gamma", runtime_config["gamma"]))
+                runtime_config["refractive_multiplier"] = float(payload.get("refractive_multiplier", runtime_config["refractive_multiplier"]))
+                runtime_config["gravity_G"] = float(payload.get("gravity_G", runtime_config["gravity_G"]))
 
-@app.post("/api/config")
-def update_config(payload: dict = Body(...)):
-    """Receives live parameters from the browser dashboard and updates the engine."""
-    global runtime_config
-    runtime_config["gamma"] = float(payload.get("gamma", runtime_config["gamma"]))
-    runtime_config["refractive_multiplier"] = float(payload.get("refractive_multiplier", runtime_config["refractive_multiplier"]))
-    runtime_config["gravity_G"] = float(payload.get("gravity_G", runtime_config["gravity_G"]))
-    return {"status": "SUCCESS", "updated_laws": runtime_config}
+        # Run the receiver loop in the background
+        asyncio.create_task(receive_configs())
+
+        # Main sender loop: Calculate and stream physics at 20 frames per second
+        while True:
+            core_engine.gamma = runtime_config["gamma"]
+            core_engine.running_G = runtime_config["gravity_G"]
+            
+            ternary_input_bus = np.random.choice([-1, 0, 1], size=NODE_COUNT)
+            
+            positions, rf_frequencies = core_engine.execute_frame(
+                current_positions=positions,
+                previous_positions=previous_positions,
+                ternary_bus=ternary_input_bus
+            )
+            previous_positions = positions.copy()
+            
+            adjusted_frequencies = rf_frequencies * runtime_config["refractive_multiplier"]
+            
+            # Pack payload and transmit down the pipe
+            frame_packet = {
+                "positions": positions.tolist(),
+                "rf_frequencies_mhz": adjusted_frequencies.tolist(),
+                "current_laws": runtime_config
+            }
+            await websocket.send_text(json.dumps(frame_packet))
+            
+            # Limit the stream to 20 FPS (50ms interval) to avoid flooding the browser
+            await asyncio.sleep(0.05)
+            
+    except WebSocketDisconnect:
+        print("🔌 WEBSOCKET: Client disconnected cleanly.")
 
 if __name__ == "__main__":
     import uvicorn
