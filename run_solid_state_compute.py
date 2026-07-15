@@ -1,5 +1,59 @@
 # ──────────────────────────────────────────────────────────────────────────
 # FILE: run_solid_state_compute.py
+# ROLE: Operational Hardware Control Loop & Export
+# ──────────────────────────────────────────────────────────────────────────
+
+import numpy as np
+import time
+from physics.unified_core import UnifiedQuantumCore
+from physics.hal_interface import HardwareAbstractionLayer
+
+NODE_COUNT = 640
+
+# 1. Initialize states & previous step cache
+positions = np.random.normal(0.0, 1.0, (NODE_COUNT, 3))
+previous_positions = positions.copy()
+
+# 2. Instantiate core engine and HAL
+core_engine = UnifiedQuantumCore(node_count=NODE_COUNT)
+hal = HardwareAbstractionLayer(node_count=NODE_COUNT)
+
+print("🚀 RUNTIME: System is fully operational. Generating output data streams...")
+
+try:
+    frame = 0
+    while frame < 100:  # Running a 100-frame slice
+        ternary_input_bus = np.random.choice([-1, 0, 1], size=NODE_COUNT)
+        
+        # Execute the unified physics calculations
+        positions, rf_frequencies = core_engine.execute_frame(
+            current_positions=positions,
+            previous_positions=previous_positions,
+            ternary_bus=ternary_input_bus
+        )
+        previous_positions = positions.copy()
+        
+        # --- USABILITY: EXPORTING DATA ---
+        # 1. Stream simulated physical signals
+        hal.simulate_hardware_write(positions, rf_frequencies)
+        
+        # 2. Generate standard binary packet (ready for network streaming)
+        packet = hal.export_to_binary_packet(positions, rf_frequencies)
+        
+        # 3. Periodically save state to local disk for visualization
+        if frame % 10 == 0:
+            json_payload = hal.export_to_json(positions, rf_frequencies)
+            with open(f"substrate_state_frame_{frame}.json", "w") as f:
+                f.write(json_payload)
+            print(f"📁 [DISK] Saved 'substrate_state_frame_{frame}.json' to disk.")
+            
+        frame += 1
+        time.sleep(0.05)
+
+except KeyboardInterrupt:
+    print("Execution halted. System safely de-energized.")
+# ──────────────────────────────────────────────────────────────────────────
+# FILE: run_solid_state_compute.py
 # ROLE: Real-Time Solid-State Compute Validation Runtime
 # ARCHITECTURE: Non-Von Neumann Gravity Well / Hologramy Pipeline
 # ──────────────────────────────────────────────────────────────────────────
