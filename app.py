@@ -321,3 +321,30 @@ bootstrap_optimizer = CausalBootstrapOptimizer(core_engine=core_engine)
                             "pass_revenue_usd": float(billing_charge_usd)
                         }
                     }))
+# Add this specialized discovery ingestion pipeline block within app.py:
+
+                if payload.get("run_scientific_discovery"):
+                    from physics.discovery_engine import ScientificDiscoveryEngine
+                    discovery_core = ScientificDiscoveryEngine(node_count=NODE_COUNT)
+                    
+                    domain = payload.get("scientific_domain", "QUANTUM_PHYSICS")
+                    # Ingest massive uncompressed empirical data arrays from researchers
+                    raw_problem_data = np.array(payload.get("problem_tensor", [1.0, 0.0, -1.0]))
+                    
+                    # Resolve centuries of physical experimentation instantly via the future loop
+                    discovery_metrics = discovery_core.resolve_scientific_hypothesis(domain, raw_problem_data)
+                    
+                    # Premium research billing allocation ($15,000 base per reality discovery pass)
+                    billing_charge_usd = 15000.00 * float(runtime_config["safety_factor"])
+                    
+                    await websocket.send_text(json.dumps({
+                        "scientific_discovery_event": True,
+                        "domain": domain,
+                        "breakthrough_summary": discovery_metrics["discovery_description"],
+                        "solution_fidelity": discovery_metrics["solution_fidelity"],
+                        "billing_metrics": {
+                            "tenant": tenant_id,
+                            "scientific_tier": True,
+                            "pass_revenue_usd": billing_charge_usd
+                        }
+                    }))
