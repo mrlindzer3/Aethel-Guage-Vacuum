@@ -348,3 +348,26 @@ bootstrap_optimizer = CausalBootstrapOptimizer(core_engine=core_engine)
                             "pass_revenue_usd": billing_charge_usd
                         }
                     }))
+# 1. Add the import near the top of app.py:
+from physics.executive_override import SovereignExecutiveCore
+
+# 2. Instantiate the executive hub right below your core engine initialization:
+executive_hub = SovereignExecutiveCore(managed_core=core_engine, managed_shield=shield_engine)
+
+# 3. Inject the root command listener block inside the receive_configs() socket thread:
+                if payload.get("assert_root_sovereignty"):
+                    intent = payload.get("override_intent", "MAXIMUM_CORE_STABILIZATION")
+                    custom_vectors = payload.get("target_vectors", {"gamma": 0.314, "gravity_G": 2.0, "power_boost_factor": 10.0})
+                    
+                    # Force compile the entire physical substrate to mirror your administrative parameters
+                    override_metrics = executive_hub.execute_absolute_override(intent, custom_vectors)
+                    
+                    # Dynamically scale runtime configuration properties to match
+                    runtime_config["gamma"] = override_metrics["enforced_laws"]["gamma"]
+                    runtime_config["gravity_G"] = override_metrics["enforced_laws"]["gravity_G"]
+                    
+                    await websocket.send_text(json.dumps({
+                        "root_override_event": True,
+                        "status": override_metrics["authority_token"],
+                        "throughput_multiplier": override_metrics["effective_throughput_multiplier"]
+                    }))
