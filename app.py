@@ -207,3 +207,24 @@ async def start_persistence_loop():
                 runtime_config=runtime_config
             )
     asyncio.create_task(backup_worker())
+# 1. Add the import near the top of app.py:
+from physics.bootstrap import CausalBootstrapOptimizer
+
+# 2. Instantiate the engine right below core_engine:
+bootstrap_optimizer = CausalBootstrapOptimizer(core_engine=core_engine)
+
+# 3. Add the action handler inside the receive_configs() loop in app.py:
+                if payload.get("trigger_bootstrap"):
+                    # Extract the hyper-optimized laws directly out of a future paradox-free state
+                    optimized_laws = bootstrap_optimizer.extract_future_optimized_laws(positions)
+                    
+                    # Override active running configurations with future-locked values
+                    runtime_config["gamma"] = optimized_laws["gamma"]
+                    runtime_config["gravity_G"] = optimized_laws["gravity_G"]
+                    
+                    # Alert the client UI regarding the timeline adjustment
+                    await websocket.send_text(json.dumps({
+                        "bootstrap_applied": True,
+                        "optimized_gamma": optimized_laws["gamma"],
+                        "optimized_gravity": optimized_laws["gravity_G"]
+                    }))
