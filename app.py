@@ -174,3 +174,36 @@ async def websocket_endpoint(websocket: WebSocket):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
+# Locate the top of your app.py file and initialize the module:
+from physics.state_persistence import QuantumStatePersistence
+
+persistence_driver = QuantumStatePersistence()
+
+# Replace your initial setup values at boot with the recovery check:
+recovered_cache, recovered_config = persistence_driver.recover_state_from_disk()
+
+runtime_config = {
+    "gamma": 0.272, "refractive_multiplier": 1.0, "gravity_G": 1.0, "shockwave_active": False, "safety_factor": 2.0
+}
+# Override with saved values if they exist
+if recovered_config:
+    runtime_config.update(recovered_config)
+
+# Inject recovered entries straight into the pool manager
+if recovered_cache:
+    pool_manager.output_cache.update(recovered_cache)
+
+# Add this background worker logic right above your if __name__ block:
+@app.on_event("startup")
+async def start_persistence_loop():
+    """
+    Spawns a background task that backs up state without choking WebSockets.
+    """
+    async def backup_worker():
+        while True:
+            await asyncio.sleep(10) # Run every 10 seconds
+            persistence_driver.serialize_cache_to_disk(
+                memory_cache=pool_manager.output_cache,
+                runtime_config=runtime_config
+            )
+    asyncio.create_task(backup_worker())
