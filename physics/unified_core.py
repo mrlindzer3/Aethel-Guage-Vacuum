@@ -1,13 +1,15 @@
 # ──────────────────────────────────────────────────────────────────────────
 # FILE: physics/unified_core.py
-# ROLE: Holographic Geo-Quantum Engine (With Emergent Spacetime Compiler)
-# ARCHITECTURE: MERA + LQG Unified Quantum Gravity Pipeline
+# ROLE: Holographic Geo-Quantum Engine (With Holonomic Tensor Core)
+# ARCHITECTURE: MERA + LQG + CTC + Tensor Network Integration
 # ──────────────────────────────────────────────────────────────────────────
 
 import numpy as np
 import logging
 from physics.crystal_schematic import FateCrystalSchematic
-from physics.genesis_compiler.py import SpacetimeCompiler  # Import our new compiler
+from physics.genesis_compiler import SpacetimeCompiler
+from physics.ctc_processor import CTCProcessor
+from physics.tensor_network import HolonomicTensorEngine  # Import the core network compiler
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("GeoQuantumCore")
@@ -18,53 +20,56 @@ class UnifiedQuantumCore:
         self.gamma = immirzi_gamma
         self.running_G = 1.0
         
-        # Initialize our structural sub-systems
+        # Initialize sub-systems
         self.crystal_engine = FateCrystalSchematic(node_count=self.node_count)
         self.crystal_schema = self.crystal_engine.generate_lattice_constraints()
         self.genesis_compiler = SpacetimeCompiler(node_count=self.node_count)
+        self.ctc_engine = CTCProcessor(dimension=8)
+        self.tensor_engine = HolonomicTensorEngine(node_count=self.node_count)
+        
+    def run_temporal_computation(self, raw_input: np.ndarray) -> dict:
+        input_vector = raw_input[:8].astype(np.complex128)
+        if len(input_vector) < 8:
+            input_vector = np.pad(input_vector, (0, 8 - len(input_vector)), 'constant')
+            
+        matrix_key = np.zeros((8, 8), dtype=np.complex128)
+        for i in range(8):
+            for j in range(8):
+                matrix_key[i, j] = np.sin(i * j * self.gamma) + 1j * np.cos(i + j)
+                
+        resolved_state = self.ctc_engine.solve_temporal_loop(
+            input_state=input_vector,
+            matrix_key=matrix_key
+        )
+        purity = float(np.real(np.trace(np.dot(resolved_state, resolved_state))))
+        
+        return {
+            "resolved_state_vector": np.real(np.diag(resolved_state)).tolist(),
+            "temporal_fidelity": purity
+        }
         
     def execute_frame(self, current_positions: np.ndarray, previous_positions: np.ndarray, ternary_bus: np.ndarray) -> tuple:
-        """
-        Executes a processing frame, dynamically compiling new spacetime if highly entangled.
-        """
-        # ──────────────────────────────────────────────────────────────────
-        # PHASE 1: GENERATE DENSITY MATRIX
-        # ──────────────────────────────────────────────────────────────────
         boundary_state = ternary_bus.astype(np.complex64)
-        # Add phase perturbations based on the physical laws (sliders)
         phase_shifts = np.exp(1j * self.gamma * np.pi * np.linspace(-1, 1, self.node_count))
         boundary_state *= phase_shifts
         
         density_matrix = np.outer(boundary_state, np.conj(boundary_state))
         
-        # ──────────────────────────────────────────────────────────────────
-        # PHASE 2: DETECT CRITICAL ENTANGLEMENT (THE SHOCKWAVE)
-        # ──────────────────────────────────────────────────────────────────
-        # If all ternary bits are polarized (shockwave active), we trigger Spacetime Genesis
+        # Compile smooth tensor network bulk geometry
+        current_laws = {"gamma": self.gamma, "gravity_G": self.running_G}
+        bulk_metrics = self.tensor_engine.evaluate_bulk_metric(np.real(boundary_state), current_laws)
+        
         is_genesis_event = np.all(ternary_bus == 1)
         
         if is_genesis_event:
             logger.warning("🌌 GENESIS: Entanglement threshold breached! Synthesizing new spacetime...")
-            # Compile fresh coordinates out of the boundary's entanglement structure
             current_positions = self.genesis_compiler.compile_emergent_geometry(np.real(boundary_state))
         else:
-            # Standard LQG local metric updates
-            spatial_volume = np.abs(np.linalg.det(np.dot(current_positions.T, current_positions)))
-            density = self.node_count / np.maximum(1e-5, spatial_volume)
-            
-            if density > 100.0:
-                logger.warning("💥 WHITE HOLE: Microscopic bounce triggered!")
-                u, _, vh = np.linalg.svd(density_matrix)
-                scrambled_matrix = np.dot(u, vh)
-                density_matrix = 0.5 * (density_matrix + scrambled_matrix)
-            
-            # Normal spatial evolution (gravity drift)
-            drift = -0.01 * self.running_G * current_positions
+            # Shift node distributions utilizing spatial metrics generated by the tensor network
+            metric_scalar = np.mean([np.trace(m) for m in bulk_metrics])
+            drift = -0.01 * self.running_G * current_positions * (metric_scalar * 0.1)
             current_positions += drift + np.random.normal(0.0, 0.05, current_positions.shape)
             
-        # ──────────────────────────────────────────────────────────────────
-        # PHASE 3: TWEEZER FREQUENCY CONVERSION
-        # ──────────────────────────────────────────────────────────────────
         refraction_indices = self.crystal_engine.calculate_refractive_tensor(
             current_positions=current_positions,
             crystal_schema=self.crystal_schema
