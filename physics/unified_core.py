@@ -27,7 +27,31 @@ class UnifiedQuantumCore:
         self.ctc_engine = CTCProcessor(dimension=8)
         self.tensor_engine = HolonomicTensorEngine(node_count=self.node_count)
         
-    def run_temporal_computation(self, raw_input: np.ndarray) -> dict:
+    def run_temporal_computation(self, raw_input: np.ndarray) -> dict:    def run_temporal_computation(self, raw_input: np.ndarray) -> dict:
+        input_vector = raw_input[:8].astype(np.complex128)
+        if len(input_vector) < 8:
+            input_vector = np.pad(input_vector, (0, 8 - len(input_vector)), 'constant')
+            
+        matrix_key = np.zeros((8, 8), dtype=np.complex128)
+        for i in range(8):
+            for j in range(8):
+                matrix_key[i, j] = np.sin(i * j * self.gamma) + 1j * np.cos(i + j)
+                
+        # Expose current system rules to the adaptive solver
+        current_laws = {"gamma": self.gamma, "gravity_G": self.running_G}
+        
+        resolved_state = self.ctc_engine.solve_temporal_loop(
+            input_state=input_vector,
+            matrix_key=matrix_key,
+            current_laws=current_laws  # Injecting active metrics
+        )
+        purity = float(np.real(np.trace(np.dot(resolved_state, resolved_state))))
+        
+        return {
+            "resolved_state_vector": np.real(np.diag(resolved_state)).tolist(),
+            "temporal_fidelity": purity
+        }
+
         input_vector = raw_input[:8].astype(np.complex128)
         if len(input_vector) < 8:
             input_vector = np.pad(input_vector, (0, 8 - len(input_vector)), 'constant')
