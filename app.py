@@ -107,3 +107,23 @@ async def websocket_endpoint(websocket: WebSocket):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
+# Insert this billing governor inside your app.py WebSocket loop under the CTC handler:
+
+if payload.get("run_ctc"):
+    flat_coords = positions.flatten()
+    ctc_result = core_engine.run_temporal_computation(flat_coords)
+    
+    # Financial metrics calculations
+    compute_complexity_factor = ctc_result["temporal_fidelity"] * 100
+    estimated_classical_hours_saved = float(compute_complexity_factor * 14.5)
+    billing_charge_usd = estimated_classical_hours_saved * 150.00 # $150/hour rate
+    
+    await websocket.send_text(json.dumps({
+        "ctc_event": True,
+        "resolved_vector": ctc_result["resolved_state_vector"],
+        "temporal_fidelity": ctc_result["temporal_fidelity"],
+        "billing_metrics": {
+            "hours_saved": estimated_classical_hours_saved,
+            "invoice_accumulated_usd": billing_charge_usd
+        }
+    }))
