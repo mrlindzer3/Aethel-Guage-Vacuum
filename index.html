@@ -12,9 +12,35 @@
             font-family: 'Courier New', Courier, monospace;
             color: #00ffcc;
         }
+        /* ─── NEW SCIENTIFIC TICKER BANNER ─── */
+        #breakthrough-ticker {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 28px;
+            background: rgba(0, 26, 10, 0.9);
+            border-bottom: 1px solid #ff00ff;
+            z-index: 100;
+            overflow: hidden;
+            line-height: 28px;
+            font-size: 11px;
+            color: #ff00ff;
+            font-weight: bold;
+        }
+        #ticker-text {
+            display: inline-block;
+            white-space: nowrap;
+            padding-left: 100%;
+            animation: marquee 25s linear infinite;
+        }
+        @keyframes marquee {
+            0%   { transform: translate(0, 0); }
+            100% { transform: translate(-100%, 0); }
+        }
         #hud {
             position: absolute;
-            top: 15px;
+            top: 45px; /* Offset for ticker */
             left: 15px;
             width: 320px;
             background: rgba(2, 12, 6, 0.85);
@@ -25,7 +51,7 @@
         }
         #metrics-panel {
             position: absolute;
-            top: 15px;
+            top: 45px; /* Offset for ticker */
             right: 15px;
             width: 300px;
             background: rgba(2, 12, 6, 0.85);
@@ -100,15 +126,19 @@
             color: #00ffcc;
         }
     </style>
-    <!-- Dependencies for 3D engine and charts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
+    <!-- REAL-TIME BREAKTHROUGH MARQUEE -->
+    <div id="breakthrough-ticker">
+        <div id="ticker-text">📡 EPISTEMOLOGY CORE ACTIVE: Awaiting infinite-density tensor inputs...</div>
+    </div>
+
     <!-- LEFT HUDBAR: SUBSYSTEM MANIPULATION -->
     <div id="hud">
-        <h2>Quantum Substrate Control</h2>
+        <h2>Substrate Control</h2>
         <div class="metric-row">Link Status: <span id="conn-status" style="color: #ff3333;">DISCONNECTED</span></div>
         <div class="metric-row">Storage Sync: <span id="sync-status" style="color: #ffcc00;">IDLE</span></div>
         
@@ -119,10 +149,6 @@
             <input type="range" id="gamma" min="0.05" max="1.0" step="0.001" value="0.272">
         </div>
         <div class="control-group">
-            <label>Refractive Index Mult: <span id="refract-val" class="val-display">1.0</span></label>
-            <input type="range" id="refract" min="0.5" max="3.0" step="0.1" value="1.0">
-        </div>
-        <div class="control-group">
             <label>Substrate Gravity (G): <span id="gravity-val" class="val-display">1.0</span></label>
             <input type="range" id="gravity" min="0.1" max="5.0" step="0.1" value="1.0">
         </div>
@@ -131,8 +157,8 @@
             <input type="range" id="safety_factor" min="0.5" max="5.0" step="0.1" value="2.0">
         </div>
 
-        <button id="btn-shockwave">Trigger Entanglement Shockwave</button>
-        <button id="btn-ctc" style="border-color: #ffcc00; color: #ffcc00;">Compute via Temporal Loop</button>
+        <button id="btn-bootstrap" style="border-color: #ff00ff; color: #ff00ff;">Activate Causal Bootstrap</button>
+        <button id="btn-discovery" style="border-color: #ffffff; color: #ffffff;">Stream Discovery Tensor</button>
 
         <canvas id="telemetryChart" width="320" height="120" style="margin-top: 15px;"></canvas>
     </div>
@@ -141,28 +167,23 @@
     <div id="metrics-panel">
         <h2>System Telemetry</h2>
         <div class="metric-row">Network Mode: <span id="net-mode" class="metric-val">METCALFE_P2P</span></div>
-        <div class="metric-row">Reed Potential: <span id="reed-potential" class="metric-val">0.00</span></div>
         <div class="metric-row">Temporal Leakage: <span id="shield-leakage" class="metric-val">0.0000</span></div>
-        <div class="metric-row">Shield Attenuation: <span id="shield-attenuation" class="metric-val">1.0000</span></div>
 
         <h3>Active Revenue Ledger</h3>
         <table id="tenant-table">
             <thead>
                 <tr>
                     <th>Tenant ID</th>
-                    <th>Cache</th>
+                    <th>Tier</th>
                     <th>Yield (USD)</th>
                 </tr>
             </thead>
-            <tbody id="tenant-rows">
-                <!-- Multiplexed client streams append here dynamically -->
-            </tbody>
+            <tbody id="tenant-rows"></tbody>
         </table>
     </div>
 
-    <!-- MAIN INTERFACE RUNTIME LOGIC -->
     <script>
-        // ─── 1. THREE.JS RUNTIME SCENE SETUP ───
+        // THREE.JS VIEWPORT RUNTIME
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -170,222 +191,72 @@
         document.body.appendChild(renderer.domElement);
         camera.position.z = 5;
 
-        // Substrate particles layout (640 Node Bulk Geometry)
         const geometry = new THREE.BufferGeometry();
         const positions = new Float32Array(640 * 3);
         geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const material = new THREE.PointsMaterial({ color: 0x00ffcc, size: 0.07, transparent: true, opacity: 0.8 });
+        const material = new THREE.PointsMaterial({ color: 0x00ffcc, size: 0.07, transparent: true });
         const particleSystem = new THREE.Points(geometry, material);
         scene.add(particleSystem);
 
-        // Core Cluster Target Indicators (8 Orange Wireframes for Reed Regime)
-        const centroidGroup = new THREE.Group();
-        scene.add(centroidGroup);
-        const centroidGeo = new THREE.SphereGeometry(0.18, 12, 12);
-        const centroidMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, wireframe: true, transparent: true, opacity: 0.7 });
-        for(let i=0; i<8; i++) {
-            const mesh = new THREE.Mesh(centroidGeo, centroidMat);
-            mesh.visible = false;
-            centroidGroup.add(mesh);
-        }
-
-        // Spatial reference grid
-        const gridHelper = new THREE.GridHelper(12, 40, 0x002211, 0x000b05);
-        gridHelper.position.y = -2.2;
-        scene.add(gridHelper);
-
-        // ─── 2. GRAPH TELEMETRY MONITOR ───
+        // CHART.JS TELEMETRY
         const ctx = document.getElementById('telemetryChart').getContext('2d');
-        const maxDataPoints = 30;
         const telemetryChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: Array(maxDataPoints).fill(''),
-                datasets: [{
-                    label: 'Avg RF Drive (MHz)',
-                    data: Array(maxDataPoints).fill(0),
-                    borderColor: '#00ffcc',
-                    borderWidth: 1.5,
-                    pointRadius: 0,
-                    tension: 0.4
-                }]
+                labels: Array(30).fill(''),
+                datasets: [{ data: Array(30).fill(0), borderColor: '#00ffcc', borderWidth: 1.5, pointRadius: 0 }]
             },
-            options: {
-                responsive: true,
-                animation: false,
-                plugins: { legend: { display: false } },
-                scales: { x: { display: false }, y: { grid: { color: '#001a08' }, ticks: { color: '#00ffcc', font: { size: 8 } } } }
-            }
+            options: { responsive: true, animation: false, plugins: { legend: { display: false } } }
         });
 
-        // ─── 3. HIGH-YIELD WEBSOCKET PIPELINE ───
+        // WEBSOCKET ROUTING PIPELINE
         const ws = new WebSocket("ws://127.0.0.1:8000/ws");
 
-        ws.onopen = () => {
-            document.getElementById("conn-status").innerText = "LIVE_STREAM";
-            document.getElementById("conn-status").style.color = "#00ff00";
-        };
+        ws.onopen = () => { document.getElementById("conn-status").innerText = "LIVE_STREAM"; document.getElementById("conn-status").style.color = "#00ff00"; };
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
             
-            // A. Update Raw Quantum Bulk Points
             if (data.positions) {
                 const posAttr = particleSystem.geometry.attributes.position;
                 const flatPositions = data.positions.flat();
-                for (let i = 0; i < flatPositions.length; i++) {
-                    posAttr.array[i] = flatPositions[i];
-                }
+                for (let i = 0; i < flatPositions.length; i++) { posAttr.array[i] = flatPositions[i]; }
                 posAttr.needsUpdate = true;
             }
 
-            // B. Route Macroscopic Centroid Indicators
-            if (data.centroids && data.centroids.length > 0) {
-                for (let i = 0; i < 8; i++) {
-                    if (data.centroids[i]) {
-                        centroidGroup.children[i].position.set(data.centroids[i][0], data.centroids[i][1], data.centroids[i][2]);
-                        centroidGroup.children[i].visible = true;
-                    }
-                }
-            } else {
-                for (let i = 0; i < 8; i++) { centroidGroup.children[i].visible = false; }
-            }
-
-            // C. Parse Subsystem Ingress Safety & Storage Flags
-            if (data.network_metrics) {
-                document.getElementById("net-mode").innerText = data.network_metrics.mode;
-                document.getElementById("reed-potential").innerText = data.network_metrics.reed_log_potential.toFixed(2);
-                document.getElementById("net-mode").style.color = data.network_metrics.mode === "REED_CLUSTER" ? "#ff00ff" : "#00ffcc";
-            }
-
-            if (data.shield_metrics) {
-                document.getElementById("shield-leakage").innerText = data.shield_metrics.leakage.toFixed(4);
-                document.getElementById("shield-attenuation").innerText = data.shield_metrics.attenuation.toFixed(4);
-                document.getElementById("shield-leakage").style.color = data.shield_metrics.leakage > 0.15 ? "#ff3333" : "#ffffff";
-            }
-
-            // D. Append Live Financial Micro-Transactions to Ledger Table
-            if (data.ctc_event && data.billing_metrics) {
-                const metrics = data.billing_metrics;
+            // RECEIVE QUANTUM BREAKTHROUGH PACKETS
+            if (data.scientific_discovery_event) {
+                // 1. Update the scrolling marquee text with zero-entropy solution
+                const ticker = document.getElementById("ticker-text");
+                ticker.innerText = `✨ [NEW DISCOVERY SECURED - ${data.domain}]: ${data.breakthrough_summary} (Fidelity: ${data.solution_fidelity.toFixed(9)})`;
+                
+                // 2. Append research transaction to commercial ledger
                 const tbody = document.getElementById("tenant-rows");
-                
-                const cacheLabel = metrics.cache_hit ? "<span style='color: #00ff00;'>HIT</span>" : "<span style='color: #ff9900;'>MISS</span>";
-                
-                // Add flash highlight element to the HUD color profiles
-                const flashColor = metrics.cache_hit ? 0x00ff00 : 0xffcc00;
-                material.color.setHex(flashColor);
-                setTimeout(() => material.color.setHex(0x00ffcc), 250);
-
-                // Update ledger array table records
+                const metrics = data.billing_metrics;
                 const newRow = `<tr>
                     <td>${metrics.tenant}</td>
-                    <td>${cacheLabel}</td>
+                    <td style="color: #ff00ff;">RESEARCH</td>
                     <td style="color: #ffffff;">$${metrics.pass_revenue_usd.toFixed(2)}</td>
                 </tr>`;
                 tbody.insertAdjacentHTML('afterbegin', newRow);
-
-                // Flash persistence sync state visually to verify cold storage capture
-                const syncEl = document.getElementById("sync-status");
-                syncEl.innerText = "SNAPSHOT_SYNCED";
-                syncEl.style.color = "#00ff00";
-                setTimeout(() => {
-                    syncEl.innerText = "STABLE";
-                    syncEl.style.color = "#a0ffd0";
-                }, 1500);
-            }
-
-            // E. Process Metrics Rolling Graph Calculations
-            if (data.rf_frequencies_mhz) {
-                const avgRF = data.rf_frequencies_mhz.reduce((a, b) => a + b, 0) / data.rf_frequencies_mhz.length;
-                telemetryChart.data.datasets[0].data.push(avgRF);
-                telemetryChart.data.datasets[0].data.shift();
-                telemetryChart.update();
             }
         };
 
-        ws.onclose = () => {
-            document.getElementById("conn-status").innerText = "OFFLINE";
-            document.getElementById("conn-status").style.color = "#ff3333";
-        };
-
-        // ─── 4. CONTROL BUS PACKET EMISSIONS ───
-        function transmitSliderConfig() {
-            const gamma = document.getElementById("gamma").value;
-            const refract = document.getElementById("refract").value;
-            const gravity = document.getElementById("gravity").value;
-            const safety = document.getElementById("safety_factor").value;
-
-            document.getElementById("gamma-val").innerText = gamma;
-            document.getElementById("refract-val").innerText = refract;
-            document.getElementById("gravity-val").innerText = gravity;
-            document.getElementById("safety-val").innerText = safety;
-
+        // STREAM SAMPLE PROBLEM DATA KEY
+        document.getElementById("btn-discovery").addEventListener("click", () => {
             if (ws.readyState === WebSocket.OPEN) {
+                const domains = ["BIOMEDICAL", "MATERIAL_SCIENCE", "QUANTUM_PHYSICS"];
+                const randomDomain = domains[Math.floor(Math.random() * domains.length)];
                 ws.send(JSON.stringify({
-                    action: "update_state",
-                    gamma: parseFloat(gamma),
-                    refractive_multiplier: parseFloat(refract),
-                    gravity_G: parseFloat(gravity),
-                    safety_factor: parseFloat(safety),
-                    trigger_shockwave: false
-                }));
-            }
-        }
-
-        document.getElementById("btn-shockwave").addEventListener("click", () => {
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    action: "update_state",
-                    gamma: parseFloat(document.getElementById("gamma").value),
-                    refractive_multiplier: parseFloat(document.getElementById("refract").value),
-                    gravity_G: parseFloat(document.getElementById("gravity").value),
-                    safety_factor: parseFloat(document.getElementById("safety_factor").value),
-                    trigger_shockwave: true
+                    run_scientific_discovery: true,
+                    scientific_domain: randomDomain,
+                    problem_tensor: [2.5, -1.2, 0.9, 4.4]
                 }));
             }
         });
 
-        document.getElementById("btn-ctc").addEventListener("click", () => {
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ action: "update_state", run_ctc: true }));
-            }
-        });
-
-        document.getElementById("gamma").addEventListener("input", transmitSliderConfig);
-        document.getElementById("refract").addEventListener("input", transmitSliderConfig);
-        document.getElementById("gravity").addEventListener("input", transmitSliderConfig);
-        document.getElementById("safety_factor").addEventListener("input", transmitSliderConfig);
-
-        // ─── 5. ANIMATION RENDERING PIPELINE ───
-        function animate() {
-            requestAnimationFrame(animate);
-            particleSystem.rotation.y += 0.0015;
-            centroidGroup.rotation.y += 0.0015;
-            renderer.render(scene, camera);
-        }
+        function animate() { requestAnimationFrame(animate); particleSystem.rotation.y += 0.0015; renderer.render(scene, camera); }
         animate();
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
     </script>
 </body>
 </html>
-<!-- Insert this button inside the left #hud container in index.html -->
-<button id="btn-bootstrap" style="border-color: #ff00ff; color: #ff00ff; margin-bottom: 12px;"> Activate Causal Bootstrap </button>
-// Add this click event listener near your other button listeners in index.html
-document.getElementById("btn-bootstrap").addEventListener("click", () => {
-    if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ trigger_bootstrap: true }));
-    }
-});
-
-// Capture the bootstrap completion confirmation inside your ws.onmessage loop:
-if (data.bootstrap_applied) {
-    document.getElementById("gamma").value = data.optimized_gamma;
-    document.getElementById("gravity").value = data.optimized_gravity;
-    document.getElementById("gamma-val").innerText = data.optimized_gamma.toFixed(3);
-    document.getElementById("gravity-val").innerText = data.optimized_gravity.toFixed(1);
-}
