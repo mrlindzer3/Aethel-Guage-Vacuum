@@ -303,3 +303,55 @@ if payload.get("run_ctc"):
             "invoice_accumulated_usd": billing_charge_usd
         }
     }))
+# Upgraded secure pipeline block within app.py:
+
+                if payload.get("run_ctc"):
+                    # 1. Initialize Gatekeeper controls
+                    from physics.auth_gatekeeper import SecurityGatekeeper
+                    gatekeeper = SecurityGatekeeper()
+                    
+                    # Extract credentials passed within the data wrapper
+                    provided_signature = payload.get("signature", "")
+                    raw_data_string = json.dumps(payload.get("data_stream", []))
+                    
+                    # 2. Enforce cryptographic validation
+                    if not gatekeeper.verify_token(tenant_id, raw_data_string, provided_signature):
+                        await websocket.send_text(json.dumps({"error": "403 Forbidden - Cryptographic Signature Mismatch"}))
+                        continue
+                        
+                    # 3. Enforce compute resource allocation safety
+                    if not gatekeeper.check_rate_limit(tenant_id):
+                        await websocket.send_text(json.dumps({"error": "429 Too Many Requests - Temporal Substrate Throttled"}))
+                        continue
+
+                    # 4. Data compression and processing continues for authorized traffic...
+                    flat_coords = positions.flatten()
+                    compressor = QuantumVectorCompressor(target_dim=8)
+                    compressed_input = compressor.compress_dataset(flat_coords)
+                    
+                    cached_solution, is_cache_hit = pool_manager.process_tenant_request(tenant_id, compressed_input)
+                    
+                    if is_cache_hit:
+                        full_dimension_solution = compressor.reconstruct_solution(cached_solution)
+                        revenue_multiplier = 0.85
+                    else:
+                        ctc_result = core_engine.run_temporal_computation(compressed_input)
+                        resolved_array = np.array(ctc_result["resolved_state_vector"])
+                        pool_manager.cache_resolved_state(compressed_input, resolved_array)
+                        full_dimension_solution = compressor.reconstruct_solution(resolved_array)
+                        revenue_multiplier = 1.0
+                        
+                    raw_bytes_processed = flat_coords.nbytes
+                    billing_charge_usd = (raw_bytes_processed / 1024.0) * 450.00 * revenue_multiplier
+                    
+                    await websocket.send_text(json.dumps({
+                        "ctc_event": True,
+                        "resolved_vector": full_dimension_solution[:8].tolist(),
+                        "temporal_fidelity": 1.0 if is_cache_hit else ctc_result["temporal_fidelity"],
+                        "billing_metrics": {
+                            "tenant": tenant_id,
+                            "cache_hit": is_cache_hit,
+                            "bytes_optimized": int(raw_bytes_processed),
+                            "pass_revenue_usd": float(billing_charge_usd)
+                        }
+                    }))
