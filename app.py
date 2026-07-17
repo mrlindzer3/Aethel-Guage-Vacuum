@@ -273,3 +273,20 @@ bootstrap_optimizer = CausalBootstrapOptimizer(core_engine=core_engine)
                             "pass_revenue_usd": billing_charge_usd
                         }
                     }))
+# Add this frame projection block inside the main 'while True' loop of app.py:
+
+            # Pass the active 3D particle positions to the rendering bridge
+            from physics.rendering_bridge import SubstrateFrameBuffer
+            renderer_bridge = SubstrateFrameBuffer(target_width=7680, target_height=4320)
+            
+            # Generate the pre-mapped screen coordinate matrix on the server
+            vector_frame_8k = renderer_bridge.project_substrate_to_pixels(positions)
+            
+            # Broadcast the pixel layout down the WebSocket wire
+            await websocket.send_text(json.dumps({
+                "positions": positions.tolist(),
+                "rf_frequencies_mhz": (rf_frequencies * runtime_config["refractive_multiplier"]).tolist(),
+                "current_laws": runtime_config,
+                "pre_rendered_frame_8k": vector_frame_8k,  # Local hardware simply paints these points
+                "shield_metrics": { "leakage": float(leakage), "attenuation": float(attenuation) }
+            }))
