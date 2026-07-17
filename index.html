@@ -375,3 +375,17 @@
 </html>
 <!-- Insert this button inside the left #hud container in index.html -->
 <button id="btn-bootstrap" style="border-color: #ff00ff; color: #ff00ff; margin-bottom: 12px;"> Activate Causal Bootstrap </button>
+// Add this click event listener near your other button listeners in index.html
+document.getElementById("btn-bootstrap").addEventListener("click", () => {
+    if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ trigger_bootstrap: true }));
+    }
+});
+
+// Capture the bootstrap completion confirmation inside your ws.onmessage loop:
+if (data.bootstrap_applied) {
+    document.getElementById("gamma").value = data.optimized_gamma;
+    document.getElementById("gravity").value = data.optimized_gravity;
+    document.getElementById("gamma-val").innerText = data.optimized_gamma.toFixed(3);
+    document.getElementById("gravity-val").innerText = data.optimized_gravity.toFixed(1);
+}
