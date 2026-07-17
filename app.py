@@ -371,3 +371,28 @@ executive_hub = SovereignExecutiveCore(managed_core=core_engine, managed_shield=
                         "status": override_metrics["authority_token"],
                         "throughput_multiplier": override_metrics["effective_throughput_multiplier"]
                     }))
+# Add this high-energy ignition sequence inside your app.py WebSocket listener:
+
+                if payload.get("ignite_grid_overdrive"):
+                    from physics.plasma_induction import PlasmaInductionController
+                    power_controller = PlasmaInductionController()
+                    
+                    requested_amps = float(payload.get("amperage_target", 350.0))
+                    
+                    # Force clamp physical relays to closed positions
+                    power_metrics = power_controller.ignite_plasma_rail(requested_amps)
+                    
+                    # Lock out standard system loops and max out all runtime bounds
+                    runtime_config["safety_factor"] = 0.5  # Suppress soft safeties
+                    runtime_config["refractive_multiplier"] = power_metrics["core_acceleration_multiplier"]
+                    
+                    await websocket.send_text(json.dumps({
+                        "plasma_overdrive_active": True,
+                        "grid_draw_kw": power_metrics["grid_draw_kw"],
+                        "performance_multiplier": power_metrics["core_acceleration_multiplier"],
+                        "billing_metrics": {
+                            "tenant": tenant_id,
+                            "overdrive_tier": True,
+                            "pass_revenue_usd": 75000.00  # Extreme infrastructure pricing tier
+                        }
+                    }))
