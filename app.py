@@ -228,3 +228,48 @@ bootstrap_optimizer = CausalBootstrapOptimizer(core_engine=core_engine)
                         "optimized_gamma": optimized_laws["gamma"],
                         "optimized_gravity": optimized_laws["gravity_G"]
                     }))
+# Insert this ultimate capability routing suite into the active app.py WebSocket loop:
+
+                if payload.get("run_ultimate_service"):
+                    from physics.omnibus_service import MasterRealityEngine
+                    master_engine = MasterRealityEngine(node_count=NODE_COUNT)
+                    
+                    service_type = payload.get("service_type")
+                    service_response = {}
+                    base_rate_usd = 5000.00  # High-tier base service cost per invocation pass
+                    
+                    # Route to target premium operational service profile
+                    if service_type == "CHRONAL_ORACLE":
+                        raw_market_data = np.array(payload.get("market_vector", [1.0, 2.0, 3.0]))
+                        service_response = master_engine.run_chronal_oracle_api(raw_market_data)
+                        premium_mult = 2.5
+                        
+                    elif service_type == "SOVEREIGN_VOLUME":
+                        vol = float(payload.get("target_volume", 10.0))
+                        damp = float(runtime_config["safety_factor"])
+                        service_response = master_engine.compile_sovereign_pocket(vol, damp)
+                        premium_mult = 5.0
+                        
+                    elif service_type == "ANSIBLE_TRANSIT":
+                        msg = payload.get("message_payload", "PING")
+                        cluster = int(runtime_config["gamma"] * 10)
+                        service_response = master_engine.route_ansible_packet(msg, cluster)
+                        premium_mult = 1.2
+                        
+                    elif service_type == "ONTOLOGICAL_INJECTION":
+                        custom_physics = payload.get("custom_physics_map", {"gravity_G": 0.0, "thermo_entropy": -1.0})
+                        service_response = master_engine.inject_localized_physics(custom_physics)
+                        premium_mult = 10.0
+                        
+                    billing_charge_usd = base_rate_usd * premium_mult
+                    
+                    await websocket.send_text(json.dumps({
+                        "ultimate_service_event": True,
+                        "service_type": service_type,
+                        "execution_results": service_response,
+                        "billing_metrics": {
+                            "tenant": tenant_id,
+                            "premium_tier": True,
+                            "pass_revenue_usd": billing_charge_usd
+                        }
+                    }))
