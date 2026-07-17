@@ -354,3 +354,178 @@ const scene = new THREE.Scene();
         <div style="font-size: 10px; margin-top: 5px; color: #a0ffd0;">
             Reed Cluster Potential: <span id="reed-potential" style="color: #ffffff;">0.00</span>
         </div>
+    <script>
+        // ─── 1. INITIALIZE THREE.JS GRAPHICS SCENE ───
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        camera.position.z = 5;
+
+        // Substrate Qubits Layer (640 Nodes)
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(640 * 3);
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+        const material = new THREE.PointsMaterial({ color: 0x00ffcc, size: 0.08, transparent: true, opacity: 0.8 });
+        const particleSystem = new THREE.Points(geometry, material);
+        scene.add(particleSystem);
+
+        // Macroscopic Core Cluster Overlay (8 Orange Spheres for Reed Mode)
+        const centroidGroup = new THREE.Group();
+        scene.add(centroidGroup);
+
+        const centroidGeo = new THREE.SphereGeometry(0.18, 16, 16);
+        const centroidMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, wireframe: true, transparent: true, opacity: 0.9 });
+
+        for (let i = 0; i < 8; i++) {
+            const mesh = new THREE.Mesh(centroidGeo, centroidMat);
+            mesh.visible = false; 
+            centroidGroup.add(mesh);
+        }
+
+        const gridHelper = new THREE.GridHelper(10, 50, 0x003322, 0x001108);
+        gridHelper.position.y = -2;
+        scene.add(gridHelper);
+
+        // ─── 2. INITIALIZE CHART.JS GRAPH TELEMETRY ───
+        const ctx = document.getElementById('telemetryChart').getContext('2d');
+        const maxDataPoints = 30;
+        const telemetryChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array(maxDataPoints).fill(''),
+                datasets: [{
+                    label: 'RF Drive (MHz)',
+                    data: Array(maxDataPoints).fill(0),
+                    borderColor: '#00ffcc',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: false,
+                scales: { x: { display: false }, y: { grid: { color: '#002211' } } }
+            }
+        });
+
+        // ─── 3. THE WEBSOCKET DATA INTERFACE ───
+        const ws = new WebSocket("ws://127.0.0.1:8000/ws");
+
+        ws.onopen = () => {
+            document.getElementById("conn-status").innerText = "CONNECTED (LIVE)";
+            document.getElementById("conn-status").style.color = "#00ff00";
+        };
+
+        // Here is the missing incoming message pipeline!
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            // A. Handle standard frame updates (640 coordinates)
+            if (data.positions) {
+                const posAttr = particleSystem.geometry.attributes.position;
+                const flatPositions = data.positions.flat();
+                for (let i = 0; i < flatPositions.length; i++) {
+                    posAttr.array[i] = flatPositions[i];
+                }
+                posAttr.needsUpdate = true;
+            }
+
+            // B. Handle dynamic group-forming targets (Reed Regime)
+            if (data.centroids && data.centroids.length > 0) {
+                for (let i = 0; i < 8; i++) {
+                    if (data.centroids[i]) {
+                        centroidGroup.children[i].position.set(data.centroids[i][0], data.centroids[i][1], data.centroids[i][2]);
+                        centroidGroup.children[i].visible = true;
+                    }
+                }
+            } else {
+                for (let i = 0; i < 8; i++) { centroidGroup.children[i].visible = false; }
+            }
+
+            // C. Update the live analytical HUD elements
+            if (data.network_metrics) {
+                document.getElementById("net-mode").innerText = data.network_metrics.mode;
+                document.getElementById("reed-potential").innerText = data.network_metrics.reed_log_potential.toFixed(2);
+                document.getElementById("net-mode").style.color = data.network_metrics.mode === "REED_CLUSTER" ? "#ff00ff" : "#00ffcc";
+            }
+
+            if (data.shield_metrics) {
+                document.getElementById("shield-leakage").innerText = data.shield_metrics.leakage.toFixed(4);
+                document.getElementById("shield-attenuation").innerText = data.shield_metrics.attenuation.toFixed(4);
+            }
+
+            // D. Push average frequency parameters to the rolling chart
+            if (data.rf_frequencies_mhz) {
+                const avgRF = data.rf_frequencies_mhz.reduce((a, b) => a + b, 0) / data.rf_frequencies_mhz.length;
+                telemetryChart.data.datasets[0].data.push(avgRF);
+                telemetryChart.data.datasets[0].data.shift();
+                telemetryChart.update();
+            }
+        };
+
+        ws.onclose = () => {
+            document.getElementById("conn-status").innerText = "DISCONNECTED";
+            document.getElementById("conn-status").style.color = "#ff3333";
+        };
+
+        // ─── 4. CONTROL EMISSION CONTROLLERS ───
+        function transmitSliderConfig() {
+            const gamma = document.getElementById("gamma").value;
+            const refract = document.getElementById("refract").value;
+            const gravity = document.getElementById("gravity").value;
+            const safety = document.getElementById("safety_factor").value;
+
+            document.getElementById("gamma-val").innerText = gamma;
+            document.getElementById("refract-val").innerText = refract;
+            document.getElementById("gravity-val").innerText = gravity;
+            document.getElementById("safety-val").innerText = safety;
+
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    action: "update_state",
+                    gamma: parseFloat(gamma),
+                    refractive_multiplier: parseFloat(refract),
+                    gravity_G: parseFloat(gravity),
+                    safety_factor: parseFloat(safety),
+                    trigger_shockwave: false
+                }));
+            }
+        }
+
+        document.getElementById("btn-shockwave").addEventListener("click", () => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    action: "update_state",
+                    gamma: parseFloat(document.getElementById("gamma").value),
+                    refractive_multiplier: parseFloat(document.getElementById("refract").value),
+                    gravity_G: parseFloat(document.getElementById("gravity").value),
+                    safety_factor: parseFloat(document.getElementById("safety_factor").value),
+                    trigger_shockwave: true
+                }));
+            }
+        });
+
+        document.getElementById("gamma").addEventListener("input", transmitSliderConfig);
+        document.getElementById("refract").addEventListener("input", transmitSliderConfig);
+        document.getElementById("gravity").addEventListener("input", transmitSliderConfig);
+        document.getElementById("safety_factor").addEventListener("input", transmitSliderConfig);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            particleSystem.rotation.y += 0.002;
+            centroidGroup.rotation.y += 0.002;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
