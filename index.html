@@ -2,395 +2,199 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>AGV: Enterprise Mission Control</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase II Spacetime Core - Mission Control</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #030a0a; color: #00ffcc; font-family: monospace; transition: background-color 0.2s ease; }
-        
-        #hud { 
-            position: absolute; top: 15px; left: 15px; z-index: 100; 
-            background: rgba(5, 15, 15, 0.95); padding: 20px; 
-            border: 1px solid #00ffcc; border-radius: 8px; width: 290px; 
-            box-shadow: 0 0 20px rgba(0, 255, 204, 0.15); 
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #020804;
+            font-family: 'Courier New', Courier, monospace;
+            color: #00ffcc;
         }
-        
-        #analytics {
-            position: absolute; top: 15px; right: 15px; z-index: 100;
-            background: rgba(5, 15, 15, 0.95); padding: 20px;
-            border: 1px solid #00ffcc; border-radius: 8px; width: 350px;
-            box-shadow: 0 0 20px rgba(0, 255, 204, 0.15);
+        #hud {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            width: 320px;
+            background: rgba(2, 12, 6, 0.85);
+            border: 1px solid #00ffcc;
+            padding: 15px;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.2);
+            z-index: 10;
         }
-        
-        h1, h2, h3 { margin: 0 0 12px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid #005544; padding-bottom: 5px; }
-        h3 { font-size: 11px; margin-top: 15px; border-bottom: 1px dashed #003322; }
-        .control-group { margin-bottom: 12px; }
-        label { display: block; font-size: 10px; margin-bottom: 5px; color: #a0ffd0; }
-        input[type="range"] { width: 100%; background: #081d1d; outline: none; border-radius: 4px; height: 6px; -webkit-appearance: none; }
-        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: #00ffcc; cursor: pointer; border-radius: 50%; }
-        .val-display { float: right; color: #ffffff; }
-        canvas { background: #040d0d; border-radius: 4px; border: 1px solid #003322; }
-
-        /* Buttons & Inputs */
+        #metrics-panel {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 300px;
+            background: rgba(2, 12, 6, 0.85);
+            border: 1px solid #00ffcc;
+            padding: 15px;
+            z-index: 10;
+        }
+        h2, h3 {
+            margin-top: 0;
+            border-bottom: 1px dashed #00ffcc;
+            padding-bottom: 5px;
+            color: #ffffff;
+            text-transform: uppercase;
+            font-size: 14px;
+        }
+        .control-group {
+            margin-bottom: 12px;
+        }
+        label {
+            display: block;
+            font-size: 11px;
+            margin-bottom: 3px;
+        }
+        input[type="range"] {
+            width: 100%;
+            background: #002211;
+            accent-color: #00ffcc;
+        }
+        .val-display {
+            float: right;
+            color: #ffffff;
+        }
         button {
-            padding: 8px; background: #002211; 
-            border: 1px solid #00ffcc; border-radius: 4px; 
-            color: #00ffcc; font-family: monospace; font-size: 10px; 
-            font-weight: bold; cursor: pointer; text-transform: uppercase;
-            transition: all 0.2s ease; width: 100%; margin-bottom: 10px;
+            width: 100%;
+            background: #003311;
+            border: 1px solid #00ffcc;
+            color: #00ffcc;
+            padding: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            transition: 0.2s ease;
         }
-        button:hover { background: #00ffcc; color: #030a0a; box-shadow: 0 0 10px rgba(0, 255, 204, 0.3); }
-        
-        select, input[type="text"] {
-            width: 100%; background: #051515; border: 1px solid #005544;
-            color: #ffffff; font-family: monospace; font-size: 11px;
-            padding: 6px; border-radius: 4px; outline: none; box-sizing: border-box; margin-bottom: 10px;
+        button:hover {
+            background: #00ffcc;
+            color: #020804;
+            box-shadow: 0 0 10px #00ffcc;
         }
-        select:focus, input[type="text"]:focus { border-color: #00ffcc; }
+        .metric-row {
+            font-size: 11px;
+            margin-bottom: 6px;
+        }
+        .metric-val {
+            color: #ffffff;
+            float: right;
+        }
+        #tenant-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+            margin-top: 5px;
+        }
+        #tenant-table th, #tenant-table td {
+            border: 1px solid #004422;
+            padding: 4px;
+            text-align: left;
+        }
+        #tenant-table th {
+            background: #002211;
+            color: #00ffcc;
+        }
     </style>
+    <!-- Dependencies for 3D engine and charts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            
-            const posAttr = particleSystem.geometry.attributes.position;
-            const flatPositions = data.positions.flat();
-            for (let i = 0; i < flatPositions.length; i++) {
-                posAttr.array[i] = flatPositions[i];
-            }
-            posAttr.needsUpdate = true;
-
-            const freqs = data.rf_frequencies_mhz;
-            const avgRF = freqs.reduce((a, b) => a + b, 0) / freqs.length;
-
-            if (data.current_laws.shockwave_active) {
-                document.body.style.backgroundColor = "#0e021a";
-                setTimeout(() => { document.body.style.backgroundColor = "#030a0a"; }, 150);
-            }
-
-            // --- ──────────────────────────────────────────────────────────
-            // UPDATE METCALFE-REED HUD METRICS
-            // --- ──────────────────────────────────────────────────────────
-            if (data.network_metrics) {
-                document.getElementById("net-mode").innerText = data.network_metrics.mode;
-                document.getElementById("reed-potential").innerText = data.network_metrics.reed_log_potential.toFixed(2);
-                
-                // Color highlight for Reed Cluster mode
-                if (data.network_metrics.mode === "REED_CLUSTER") {
-                    document.getElementById("net-mode").style.color = "#ff00ff"; // Holographic pink
-                } else {
-                    document.getElementById("net-mode").style.color = "#00ffcc"; // Classic cyan
-                }
-            }
-
-            telemetryChart.data.datasets[0].data.push(avgRF);
-            telemetryChart.data.datasets[0].data.shift();
-            telemetryChart.update();
-        };
-
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+
+    <!-- LEFT HUDBAR: SUBSYSTEM MANIPULATION -->
     <div id="hud">
-        <h1>AGV Core Controls</h1>
+        <h2>Quantum Substrate Control</h2>
+        <div class="metric-row">Link Status: <span id="conn-status" style="color: #ff3333;">DISCONNECTED</span></div>
+        <div class="metric-row">Storage Sync: <span id="sync-status" style="color: #ffcc00;">IDLE</span></div>
         
+        <hr style="border: 0; border-top: 1px solid #004422; margin: 12px 0;">
+
         <div class="control-group">
-            <label>Immirzi Scale (Gamma): <span id="gamma-val" class="val-display">0.272</span></label>
-            <input type="range" id="gamma" min="0.1" max="1.0" step="0.01" value="0.272">
+            <label>Immirzi Parameter (γ): <span id="gamma-val" class="val-display">0.272</span></label>
+            <input type="range" id="gamma" min="0.05" max="1.0" step="0.001" value="0.272">
         </div>
         <div class="control-group">
-            <label>Refraction Multiplier: <span id="refract-val" class="val-display">1.0</span></label>
+            <label>Refractive Index Mult: <span id="refract-val" class="val-display">1.0</span></label>
             <input type="range" id="refract" min="0.5" max="3.0" step="0.1" value="1.0">
         </div>
         <div class="control-group">
             <label>Substrate Gravity (G): <span id="gravity-val" class="val-display">1.0</span></label>
             <input type="range" id="gravity" min="0.1" max="5.0" step="0.1" value="1.0">
         </div>
-        
-        <button id="btn-shockwave" style="margin-top: 5px;">Trigger Shockwave</button>
-
-        <h3>Config Presets</h3>
         <div class="control-group">
-            <label>Load Preset</label>
-            <select id="preset-selector">
-                <option value="" disabled selected>Select saved layout...</option>
-            </select>
-        </div>
-        <div class="control-group">
-            <label>Save Current State As:</label>
-            <input type="text" id="preset-name-input" placeholder="e.g. My Gravity Field">
-            <button id="btn-save-preset">Save Preset</button>
+            <label>Shield Suppression: <span id="safety-val" class="val-display">2.0</span></label>
+            <input type="range" id="safety_factor" min="0.5" max="5.0" step="0.1" value="2.0">
         </div>
 
-        <div style="font-size: 10px; border-top: 1px dashed #005544; padding-top: 10px;">
-            Connection: <span id="conn-status" style="color: #ff3333;">CONNECTING...</span>
-        </div>
+        <button id="btn-shockwave">Trigger Entanglement Shockwave</button>
+        <button id="btn-ctc" style="border-color: #ffcc00; color: #ffcc00;">Compute via Temporal Loop</button>
+
+        <canvas id="telemetryChart" width="320" height="120" style="margin-top: 15px;"></canvas>
     </div>
 
-    <div id="analytics">
-        <h2>Live Telemetry Stream</h2>
-        <canvas id="telemetryChart" width="350" height="200"></canvas>
+    <!-- RIGHT HUDBAR: PRODUCTION MONITORING -->
+    <div id="metrics-panel">
+        <h2>System Telemetry</h2>
+        <div class="metric-row">Network Mode: <span id="net-mode" class="metric-val">METCALFE_P2P</span></div>
+        <div class="metric-row">Reed Potential: <span id="reed-potential" class="metric-val">0.00</span></div>
+        <div class="metric-row">Temporal Leakage: <span id="shield-leakage" class="metric-val">0.0000</span></div>
+        <div class="metric-row">Shield Attenuation: <span id="shield-attenuation" class="metric-val">1.0000</span></div>
+
+        <h3>Active Revenue Ledger</h3>
+        <table id="tenant-table">
+            <thead>
+                <tr>
+                    <th>Tenant ID</th>
+                    <th>Cache</th>
+                    <th>Yield (USD)</th>
+                </tr>
+            </thead>
+            <tbody id="tenant-rows">
+                <!-- Multiplexed client streams append here dynamically -->
+            </tbody>
+        </table>
     </div>
 
+    <!-- MAIN INTERFACE RUNTIME LOGIC -->
     <script>
-        // --- 1. INITIALIZE THREE.JS ---
-                // Create an overlay layer for macroscopic cluster nodes (Orange Spheres)
-        const centroidGroup = new THREE.Group();
-        scene.add(centroidGroup);
-
-        const centroidGeo = new THREE.SphereGeometry(0.18, 16, 16);
-        const centroidMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, wireframe: true, transparent: true, opacity: 0.9 });
-
-        for (let i = 0; i < 8; i++) {
-            const mesh = new THREE.Mesh(centroidGeo, centroidMat);
-            mesh.visible = false; // Hidden by default until group mode kicks in
-            centroidGroup.add(mesh);
-        }
-const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-
-        camera.position.z = 5;
-
-        const geometry = new THREE.BufferGeometry();
-        const positions = new Float32Array(640 * 3);
-        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-        const material = new THREE.PointsMaterial({ color: 0x00ffcc, size: 0.08, transparent: true, opacity: 0.8 });
-        const particleSystem = new THREE.Points(geometry, material);
-        scene.add(particleSystem);
-
-        const gridHelper = new THREE.GridHelper(10, 50, 0x003322, 0x001108);
-        gridHelper.position.y = -2;
-        scene.add(gridHelper);
-
-        // --- 2. INITIALIZE CHART.JS ---
-        const ctx = document.getElementById('telemetryChart').getContext('2d');
-        const maxDataPoints = 30;
-        const telemetryChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: Array(maxDataPoints).fill(''),
-                datasets: [{
-                    label: 'RF Drive (MHz)',
-                    data: Array(maxDataPoints).fill(0),
-                    borderColor: '#00ffcc',
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    tension: 0.3,
-                    yAxisID: 'y'
-                }]
-            },
-            options: {
-                responsive: true,
-                animation: false,
-                scales: {
-                    x: { display: false },
-                    y: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        grid: { color: '#002211' },
-                        ticks: { color: '#a0ffd0', font: { family: 'monospace', size: 9 } }
-                    }
-                },
-                plugins: {
-                    legend: { labels: { color: '#00ffcc', font: { family: 'monospace', size: 10 } } }
-                }
-            }
-        });
-
-        // --- 3. ESTABLISH WEBSOCKET PIPELINE ---
-        const ws = new WebSocket("ws://127.0.0.1:8000/ws");
-        let activePresets = {};
-
-        ws.onopen = () => {
-            document.getElementById("conn-status").innerText = "CONNECTED (LIVE)";
-            document.getElementById("conn-status").style.color = "#00ff00";
-            loadPresetsFromServer();
-        };
-
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            
-            const posAttr = particleSystem.geometry.attributes.position;
-            const flatPositions = data.positions.flat();
-            for (let i = 0; i < flatPositions.length; i++) {
-                posAttr.array[i] = flatPositions[i];
-            }
-            posAttr.needsUpdate = true;
-
-            const freqs = data.rf_frequencies_mhz;
-            const avgRF = freqs.reduce((a, b) => a + b, 0) / freqs.length;
-
-            if (data.current_laws.shockwave_active) {
-                document.body.style.backgroundColor = "#0e021a";
-                setTimeout(() => { document.body.style.backgroundColor = "#030a0a"; }, 150);
-            }
-
-            telemetryChart.data.datasets[0].data.push(avgRF);
-            telemetryChart.data.datasets[0].data.shift();
-            telemetryChart.update();
-        };
-
-        ws.onclose = () => {
-            document.getElementById("conn-status").innerText = "DISCONNECTED";
-            document.getElementById("conn-status").style.color = "#ff3333";
-        };
-
-        // --- 4. PRESET PERSISTENCE IMPLEMENTATION ---
-        async function loadPresetsFromServer() {
-            try {
-                const response = await fetch('http://127.0.0.1:8000/api/presets');
-                activePresets = await response.json();
-                
-                const selector = document.getElementById("preset-selector");
-                selector.innerHTML = '<option value="" disabled selected>Select saved layout...</option>';
-                
-                Object.keys(activePresets).forEach(name => {
-                    const opt = document.createElement("option");
-                    opt.value = name;
-                    opt.innerText = name;
-                    selector.appendChild(opt);
-                });
-            } catch (err) {
-                console.error("Error loading presets:", err);
-            }
-        }
-
-        // Apply a selected preset to the UI and transmit back up to the server
-        document.getElementById("preset-selector").addEventListener("change", (e) => {
-            const name = e.target.value;
-            const config = activePresets[name];
-            if (config) {
-                document.getElementById("gamma").value = config.gamma;
-                document.getElementById("refract").value = config.refractive_multiplier;
-                document.getElementById("gravity").value = config.gravity_G;
-                transmitSliderConfig();
-            }
-        });
-
-        // Save new preset
-        document.getElementById("btn-save-preset").addEventListener("click", () => {
-            const input = document.getElementById("preset-name-input");
-            const name = input.value.trim();
-            if (!name) return alert("Please enter a name for the preset.");
-            
-            const configValues = {
-                gamma: parseFloat(document.getElementById("gamma").value),
-                refractive_multiplier: parseFloat(document.getElementById("refract").value),
-                gravity_G: parseFloat(document.getElementById("gravity").value)
-            };
-
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    action: "save_preset",
-                    name: name,
-                    values: configValues
-                }));
-                input.value = "";
-                // Briefly reload dropdown
-                setTimeout(loadPresetsFromServer, 200);
-            }
-        });
-
-        // Continuous telemetry state transmission
-        function transmitSliderConfig() {
-            const gamma = document.getElementById("gamma").value;
-            const refract = document.getElementById("refract").value;
-            const gravity = document.getElementById("gravity").value;
-
-            document.getElementById("gamma-val").innerText = gamma;
-            document.getElementById("refract-val").innerText = refract;
-            document.getElementById("gravity-val").innerText = gravity;
-
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    action: "update_state",
-                    gamma: parseFloat(gamma),
-                    refractive_multiplier: parseFloat(refract),
-                    gravity_G: parseFloat(gravity),
-                    trigger_shockwave: false
-                }));
-            }
-        }
-
-        document.getElementById("btn-shockwave").addEventListener("click", () => {
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    action: "update_state",
-                    gamma: parseFloat(document.getElementById("gamma").value),
-                    refractive_multiplier: parseFloat(document.getElementById("refract").value),
-                    gravity_G: parseFloat(document.getElementById("gravity").value),
-                    trigger_shockwave: true
-                }));
-            }
-        });
-
-        document.getElementById("gamma").addEventListener("input", transmitSliderConfig);
-        document.getElementById("refract").addEventListener("input", transmitSliderConfig);
-        document.getElementById("gravity").addEventListener("input", transmitSliderConfig);
-
-        function animate() {
-            requestAnimationFrame(animate);
-            particleSystem.rotation.y += 0.002;
-            renderer.render(scene, camera);
-        }
-
-        animate();
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-    </script>
-</body>
-</html>
-        <div style="font-size: 10px; border-top: 1px dashed #005544; padding-top: 10px; margin-top: 10px;">
-            Connection: <span id="conn-status" style="color: #ff3333;">CONNECTING...</span>
-        </div>
-        <div style="font-size: 10px; margin-top: 5px; color: #a0ffd0;">
-            Network Scaling Mode: <span id="net-mode" style="color: #ffffff;">METCALFE_P2P</span>
-        </div>
-        <div style="font-size: 10px; margin-top: 5px; color: #a0ffd0;">
-            Reed Cluster Potential: <span id="reed-potential" style="color: #ffffff;">0.00</span>
-        </div>
-    <script>
-        // ─── 1. INITIALIZE THREE.JS GRAPHICS SCENE ───
+        // ─── 1. THREE.JS RUNTIME SCENE SETUP ───
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
-
         camera.position.z = 5;
 
-        // Substrate Qubits Layer (640 Nodes)
+        // Substrate particles layout (640 Node Bulk Geometry)
         const geometry = new THREE.BufferGeometry();
         const positions = new Float32Array(640 * 3);
         geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-        const material = new THREE.PointsMaterial({ color: 0x00ffcc, size: 0.08, transparent: true, opacity: 0.8 });
+        const material = new THREE.PointsMaterial({ color: 0x00ffcc, size: 0.07, transparent: true, opacity: 0.8 });
         const particleSystem = new THREE.Points(geometry, material);
         scene.add(particleSystem);
 
-        // Macroscopic Core Cluster Overlay (8 Orange Spheres for Reed Mode)
+        // Core Cluster Target Indicators (8 Orange Wireframes for Reed Regime)
         const centroidGroup = new THREE.Group();
         scene.add(centroidGroup);
-
-        const centroidGeo = new THREE.SphereGeometry(0.18, 16, 16);
-        const centroidMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, wireframe: true, transparent: true, opacity: 0.9 });
-
-        for (let i = 0; i < 8; i++) {
+        const centroidGeo = new THREE.SphereGeometry(0.18, 12, 12);
+        const centroidMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, wireframe: true, transparent: true, opacity: 0.7 });
+        for(let i=0; i<8; i++) {
             const mesh = new THREE.Mesh(centroidGeo, centroidMat);
-            mesh.visible = false; 
+            mesh.visible = false;
             centroidGroup.add(mesh);
         }
 
-        const gridHelper = new THREE.GridHelper(10, 50, 0x003322, 0x001108);
-        gridHelper.position.y = -2;
+        // Spatial reference grid
+        const gridHelper = new THREE.GridHelper(12, 40, 0x002211, 0x000b05);
+        gridHelper.position.y = -2.2;
         scene.add(gridHelper);
 
-        // ─── 2. INITIALIZE CHART.JS GRAPH TELEMETRY ───
+        // ─── 2. GRAPH TELEMETRY MONITOR ───
         const ctx = document.getElementById('telemetryChart').getContext('2d');
         const maxDataPoints = 30;
         const telemetryChart = new Chart(ctx, {
@@ -398,34 +202,34 @@ const scene = new THREE.Scene();
             data: {
                 labels: Array(maxDataPoints).fill(''),
                 datasets: [{
-                    label: 'RF Drive (MHz)',
+                    label: 'Avg RF Drive (MHz)',
                     data: Array(maxDataPoints).fill(0),
                     borderColor: '#00ffcc',
-                    borderWidth: 2,
+                    borderWidth: 1.5,
                     pointRadius: 0,
-                    tension: 0.3
+                    tension: 0.4
                 }]
             },
             options: {
                 responsive: true,
                 animation: false,
-                scales: { x: { display: false }, y: { grid: { color: '#002211' } } }
+                plugins: { legend: { display: false } },
+                scales: { x: { display: false }, y: { grid: { color: '#001a08' }, ticks: { color: '#00ffcc', font: { size: 8 } } } }
             }
         });
 
-        // ─── 3. THE WEBSOCKET DATA INTERFACE ───
+        // ─── 3. HIGH-YIELD WEBSOCKET PIPELINE ───
         const ws = new WebSocket("ws://127.0.0.1:8000/ws");
 
         ws.onopen = () => {
-            document.getElementById("conn-status").innerText = "CONNECTED (LIVE)";
+            document.getElementById("conn-status").innerText = "LIVE_STREAM";
             document.getElementById("conn-status").style.color = "#00ff00";
         };
 
-        // Here is the missing incoming message pipeline!
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
             
-            // A. Handle standard frame updates (640 coordinates)
+            // A. Update Raw Quantum Bulk Points
             if (data.positions) {
                 const posAttr = particleSystem.geometry.attributes.position;
                 const flatPositions = data.positions.flat();
@@ -435,7 +239,7 @@ const scene = new THREE.Scene();
                 posAttr.needsUpdate = true;
             }
 
-            // B. Handle dynamic group-forming targets (Reed Regime)
+            // B. Route Macroscopic Centroid Indicators
             if (data.centroids && data.centroids.length > 0) {
                 for (let i = 0; i < 8; i++) {
                     if (data.centroids[i]) {
@@ -447,7 +251,7 @@ const scene = new THREE.Scene();
                 for (let i = 0; i < 8; i++) { centroidGroup.children[i].visible = false; }
             }
 
-            // C. Update the live analytical HUD elements
+            // C. Parse Subsystem Ingress Safety & Storage Flags
             if (data.network_metrics) {
                 document.getElementById("net-mode").innerText = data.network_metrics.mode;
                 document.getElementById("reed-potential").innerText = data.network_metrics.reed_log_potential.toFixed(2);
@@ -457,9 +261,40 @@ const scene = new THREE.Scene();
             if (data.shield_metrics) {
                 document.getElementById("shield-leakage").innerText = data.shield_metrics.leakage.toFixed(4);
                 document.getElementById("shield-attenuation").innerText = data.shield_metrics.attenuation.toFixed(4);
+                document.getElementById("shield-leakage").style.color = data.shield_metrics.leakage > 0.15 ? "#ff3333" : "#ffffff";
             }
 
-            // D. Push average frequency parameters to the rolling chart
+            // D. Append Live Financial Micro-Transactions to Ledger Table
+            if (data.ctc_event && data.billing_metrics) {
+                const metrics = data.billing_metrics;
+                const tbody = document.getElementById("tenant-rows");
+                
+                const cacheLabel = metrics.cache_hit ? "<span style='color: #00ff00;'>HIT</span>" : "<span style='color: #ff9900;'>MISS</span>";
+                
+                // Add flash highlight element to the HUD color profiles
+                const flashColor = metrics.cache_hit ? 0x00ff00 : 0xffcc00;
+                material.color.setHex(flashColor);
+                setTimeout(() => material.color.setHex(0x00ffcc), 250);
+
+                // Update ledger array table records
+                const newRow = `<tr>
+                    <td>${metrics.tenant}</td>
+                    <td>${cacheLabel}</td>
+                    <td style="color: #ffffff;">$${metrics.pass_revenue_usd.toFixed(2)}</td>
+                </tr>`;
+                tbody.insertAdjacentHTML('afterbegin', newRow);
+
+                // Flash persistence sync state visually to verify cold storage capture
+                const syncEl = document.getElementById("sync-status");
+                syncEl.innerText = "SNAPSHOT_SYNCED";
+                syncEl.style.color = "#00ff00";
+                setTimeout(() => {
+                    syncEl.innerText = "STABLE";
+                    syncEl.style.color = "#a0ffd0";
+                }, 1500);
+            }
+
+            // E. Process Metrics Rolling Graph Calculations
             if (data.rf_frequencies_mhz) {
                 const avgRF = data.rf_frequencies_mhz.reduce((a, b) => a + b, 0) / data.rf_frequencies_mhz.length;
                 telemetryChart.data.datasets[0].data.push(avgRF);
@@ -469,11 +304,11 @@ const scene = new THREE.Scene();
         };
 
         ws.onclose = () => {
-            document.getElementById("conn-status").innerText = "DISCONNECTED";
+            document.getElementById("conn-status").innerText = "OFFLINE";
             document.getElementById("conn-status").style.color = "#ff3333";
         };
 
-        // ─── 4. CONTROL EMISSION CONTROLLERS ───
+        // ─── 4. CONTROL BUS PACKET EMISSIONS ───
         function transmitSliderConfig() {
             const gamma = document.getElementById("gamma").value;
             const refract = document.getElementById("refract").value;
@@ -510,15 +345,22 @@ const scene = new THREE.Scene();
             }
         });
 
+        document.getElementById("btn-ctc").addEventListener("click", () => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ action: "update_state", run_ctc: true }));
+            }
+        });
+
         document.getElementById("gamma").addEventListener("input", transmitSliderConfig);
         document.getElementById("refract").addEventListener("input", transmitSliderConfig);
         document.getElementById("gravity").addEventListener("input", transmitSliderConfig);
         document.getElementById("safety_factor").addEventListener("input", transmitSliderConfig);
 
+        // ─── 5. ANIMATION RENDERING PIPELINE ───
         function animate() {
             requestAnimationFrame(animate);
-            particleSystem.rotation.y += 0.002;
-            centroidGroup.rotation.y += 0.002;
+            particleSystem.rotation.y += 0.0015;
+            centroidGroup.rotation.y += 0.0015;
             renderer.render(scene, camera);
         }
         animate();
@@ -529,3 +371,5 @@ const scene = new THREE.Scene();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
     </script>
+</body>
+</html>
