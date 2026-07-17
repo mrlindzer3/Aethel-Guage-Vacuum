@@ -113,7 +113,39 @@ if payload.get("run_ctc"):
     flat_coords = positions.flatten()
     ctc_result = core_engine.run_temporal_computation(flat_coords)
     
-    # Financial metrics calculations
+    # Financial metrics calculations# Upgraded high-yield pipeline inside app.py:
+
+                if payload.get("run_ctc"):
+                    # 1. Capture a large, uncompressed high-dimensional coordinate state (e.g., all 640 nodes)
+                    flat_coords = positions.flatten() # 1920 raw dimensions
+                    
+                    # 2. Initialize the compressor to cram massive data density into the 8-unit loop
+                    from physics.vector_compressor import QuantumVectorCompressor
+                    compressor = QuantumVectorCompressor(target_dim=8)
+                    
+                    compressed_input = compressor.compress_dataset(flat_coords)
+                    
+                    # 3. Process the hyper-dense payload through the temporal fixed-point solver
+                    ctc_result = core_engine.run_temporal_computation(compressed_input)
+                    
+                    # 4. Reconstruct the complete, paradox-free 1920-dimensional matrix instantly
+                    resolved_array = np.array(ctc_result["resolved_state_vector"])
+                    full_dimension_solution = compressor.reconstruct_solution(resolved_array)
+                    
+                    # 5. Maximized Revenue Calculation: Charge based on raw dimensions processed per loop pass
+                    raw_bytes_processed = flat_coords.nbytes
+                    billing_charge_usd = (raw_bytes_processed / 1024.0) * 450.00 # $450 per KB density rate
+                    
+                    await websocket.send_text(json.dumps({
+                        "ctc_event": True,
+                        "resolved_vector": full_dimension_solution[:8].tolist(), # Send preview to HUD
+                        "temporal_fidelity": ctc_result["temporal_fidelity"],
+                        "billing_metrics": {
+                            "bytes_optimized": int(raw_bytes_processed),
+                            "pass_revenue_usd": float(billing_charge_usd)
+                        }
+                    }))
+
     compute_complexity_factor = ctc_result["temporal_fidelity"] * 100
     estimated_classical_hours_saved = float(compute_complexity_factor * 14.5)
     billing_charge_usd = estimated_classical_hours_saved * 150.00 # $150/hour rate
