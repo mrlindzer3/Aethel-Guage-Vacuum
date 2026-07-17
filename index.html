@@ -130,7 +130,19 @@
 
     <script>
         // --- 1. INITIALIZE THREE.JS ---
-        const scene = new THREE.Scene();
+                // Create an overlay layer for macroscopic cluster nodes (Orange Spheres)
+        const centroidGroup = new THREE.Group();
+        scene.add(centroidGroup);
+
+        const centroidGeo = new THREE.SphereGeometry(0.18, 16, 16);
+        const centroidMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, wireframe: true, transparent: true, opacity: 0.9 });
+
+        for (let i = 0; i < 8; i++) {
+            const mesh = new THREE.Mesh(centroidGeo, centroidMat);
+            mesh.visible = false; // Hidden by default until group mode kicks in
+            centroidGroup.add(mesh);
+        }
+const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
