@@ -44,3 +44,10 @@ class SolidStateTopologicalBridge:
             "quasicrystal_coherence": coherence_index,
             "hardware_thermal_emission": "ZERO_STATIC"
         }
+# Integration update within physics/amplituhedron_bridge.py:
+
+    def get_optimized_gamma(self, implementation_id: int):
+        # Fetches the specific optimized Immirzi parameter for one of the 55 nodes
+        from physics.optimizations.gradient_engine import ParametricOptimizer
+        optimizer = ParametricOptimizer()
+        return optimizer.gamma_registry[implementation_id]
