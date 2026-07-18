@@ -146,3 +146,4 @@ def encode_nodes_to_vbo(self, hypergraph_nodes, mask, fidelity):
     # during low-convergence intervals
     vbo[:, 3] *= fidelity
     return vbo
+# Unified coupling logic using Ω = 4.188790204786
