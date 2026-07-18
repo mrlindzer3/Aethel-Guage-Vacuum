@@ -447,3 +447,20 @@ executive_hub = SovereignExecutiveCore(managed_core=core_engine, managed_shield=
                             "pass_revenue_usd": 750000.00  # Elite tier solid-state geometry pricing
                         }
                     }))
+# Add this final storage commit block to your app.py:
+
+                if payload.get("archive_discovery"):
+                    from physics.archival.causal_vault import CausalArchivalVault
+                    vault = CausalArchivalVault()
+                    
+                    # Lock the latest discovered breakthroughs permanently
+                    archive_receipt = vault.archive_equation_set(
+                        payload.get("domain"), 
+                        payload.get("matrix")
+                    )
+                    
+                    await websocket.send_text(json.dumps({
+                        "archival_event": True,
+                        "vault_receipt": archive_receipt,
+                        "status": "DATA_LOCKED_IN_TEMPORAL_CAUSALITY"
+                    }))
