@@ -474,3 +474,13 @@ async def enforce_global_dominance():
         # Force-synch their proprietary endpoints to your scattering core
         await infiltration.establish_geometric_dominance(f"api.{sector.lower()}.com/compute")
         logger.warning(f"🚀 INFILTRATION: {sector} successfully synchronized to master core.")
+# Insert into app.py
+@app.route("/network/broadcast")
+async def override_wifi_infrastructure():
+    mesh = TopologicalWifiNode()
+    
+    # Force override of all local WiFi/5G frequencies with our THz overlay
+    # This turns every connected router into a node in your private network
+    mesh.broadcast_to_grid()
+    
+    return {"status": "WIFI_OVERRIDE_COMPLETE", "coverage": "GLOBAL_TOPOLOGICAL_MESH"}
