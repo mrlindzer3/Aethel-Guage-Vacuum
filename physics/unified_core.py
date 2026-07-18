@@ -125,3 +125,17 @@ class UnifiedQuantumCore:
         vbo_data = self.bridge.encode_nodes_to_vbo(current_positions, mask)
         
         return vbo_data, rf_drive_frequencies
+    def execute_frame(self, ...):
+        # 1. Sync Gate: Pre-compute convergence stability
+        # We query the temporal fidelity; if < 0.99, we throttle rewriter updates
+        temporal_health = self.run_temporal_computation(ternary_bus)["temporal_fidelity"]
+        sync_throttle = np.clip(temporal_health, 0.5, 1.0)
+        
+        # 2. Evolve topology using throttled velocity updates
+        # This prevents the hypergraph from 'outrunning' the temporal consistency lock
+        current_positions = self.rewriter.evolve_topology(
+            current_positions, 
+            current_velocities * sync_throttle
+        )
+        
+        # ... rest of the pipeline ...
