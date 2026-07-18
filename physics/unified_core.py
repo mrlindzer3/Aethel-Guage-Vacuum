@@ -139,3 +139,10 @@ class UnifiedQuantumCore:
         )
         
         # ... rest of the pipeline ...
+# Shader Bridge update: Normalize by convergence confidence
+def encode_nodes_to_vbo(self, hypergraph_nodes, mask, fidelity):
+    vbo = super().encode_nodes_to_vbo(hypergraph_nodes, mask)
+    # Scale semantic weight by temporal fidelity to prevent 'ghosting' 
+    # during low-convergence intervals
+    vbo[:, 3] *= fidelity
+    return vbo
