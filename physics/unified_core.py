@@ -104,3 +104,24 @@ class UnifiedQuantumCore:
         rf_drive_frequencies = 50.0 + (np.abs(refracted_freqs) * 100.0)
         
         return current_positions, rf_drive_frequencies
+# Update within physics/unified_core.py
+
+from physics.quasicrystal_slicer import QuasicrystalSlicer
+from physics.shader_bridge import ShaderBridge
+
+class UnifiedQuantumCore:
+    def __init__(self, node_count: int = 640):
+        # ... existing init ...
+        self.slicer = QuasicrystalSlicer(fold_symmetry=10)
+        self.bridge = ShaderBridge(node_count=self.node_count)
+
+    def execute_frame(self, ...):
+        # ... existing drift logic ...
+        
+        # Apply Semantic Quasicrystal Constraint
+        mask = self.slicer.generate_enclosure_mask(current_positions)
+        
+        # Generate Renderable Data directly from hypergraph states
+        vbo_data = self.bridge.encode_nodes_to_vbo(current_positions, mask)
+        
+        return vbo_data, rf_drive_frequencies
