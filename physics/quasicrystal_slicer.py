@@ -21,3 +21,4 @@ class QuasicrystalSlicer:
         # Semantic gate: Filter nodes that violate the quasi-periodic global order
         mask = np.sum(np.cos(projection), axis=1) > 0.5
         return mask
+# 12-fold quasicrystal and hyper-lattice layering geometry
