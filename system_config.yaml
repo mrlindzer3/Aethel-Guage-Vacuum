@@ -1,0 +1,16 @@
+# Unified Configuration for Universe-Budding Pipeline
+constants:
+  omega: 4.188790204786
+  golden_ratio: 1.61803398875
+
+lattice_params:
+  symmetry_order: 12
+  braid_density_threshold: 1.618
+
+compiler_settings:
+  solver: "amplituhedron"
+  fault_tolerance_limit: 10.0
+
+dashboard_settings:
+  stream_rate: "real-time"
+  telemetry_port: 8080
