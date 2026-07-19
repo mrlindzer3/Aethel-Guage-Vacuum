@@ -50,3 +50,22 @@ if __name__ == "__main__":
     # Execution with Braid Density parameter for dashboard stability tracking
     result = run_master_proof_pipeline([4.18, -4.18, 0.0], 0.6)
     print(result)
+import yaml
+
+def load_system_config(config_path="system_config.yaml"):
+    """
+    Loads the central configuration file to synchronize 
+    the modular pipeline components.
+    """
+    with open(config_path, 'r') as file:
+        config = yaml.safe_load(file)
+    return config
+
+# Load config at the start of execution
+config = load_system_config()
+
+# Example: Injecting config into your modules
+# controller.initialize(config['lattice_params'])
+# compiler.set_tolerance(config['compiler_settings']['fault_tolerance_limit'])
+
+print(f"System synchronized with Ω={config['constants']['omega']}")
