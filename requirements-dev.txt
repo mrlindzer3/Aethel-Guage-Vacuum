@@ -1,0 +1,10 @@
+name: Aethel Lab (dev requirements)
+
+# dependencies for development and docs
+numpy
+pytest
+pyyaml
+matplotlib
+scipy
+mkdocs
+mkdocs-material

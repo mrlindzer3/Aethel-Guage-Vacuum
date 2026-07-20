@@ -1,0 +1,11 @@
+{
+  "name": "Aethel Lab Devcontainer",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash"
+  },
+  "extensions": ["ms-python.python", "ms-python.vscode-pylance"],
+  "postCreateCommand": "pip install -r requirements-dev.txt"
+}

@@ -1,0 +1,5 @@
+site_name: Aethel Gauge Vacuum Lab Docs
+nav:
+  - Home: index.md
+theme:
+  name: material

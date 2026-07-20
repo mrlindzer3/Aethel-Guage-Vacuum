@@ -1,0 +1,73 @@
+name: Build and ingest perf artifacts
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - ci/add-pytest-workflow
+      - lab/academy-grade
+      - lab/academy-grade/features
+
+jobs:
+  build-and-ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; else pip install numpy pytest pyyaml matplotlib scipy; fi
+
+      - name: Run tests
+        run: |
+          pytest -q
+
+      - name: Run example experiment and emit JSON
+        run: |
+          mkdir -p archive/perf
+          TIMESTAMP=$(date -u +"%Y%m%d-%H%M%SZ")
+          OUT=archive/perf/${TIMESTAMP}-${GITHUB_RUN_ID}.json
+          python experiments/run_example.py --emit-json "$OUT" --cycles 10
+          echo "OUT=$OUT" >> $GITHUB_OUTPUT
+        id: emit
+
+      - name: Ingest artifact into YAML theory record
+        run: |
+          python scripts/ingest_artifact.py "$OUT" --out-dir archive/theories
+
+      - name: Upload artifacts (JSON + YAML)
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-and-theory-${{ github.run_id }}
+          path: |
+            archive/perf/*.json
+            archive/theories/*.yaml
+
+      - name: Conditional push of YAML + THEORIES.md to archive/records
+        if: ${{ secrets.ARCHIVE_PAT != '' }}
+        env:
+          ARCHIVE_PAT: ${{ secrets.ARCHIVE_PAT }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin
+          if git ls-remote --heads origin archive/records >/dev/null 2>&1; then
+            git checkout --quiet archive/records
+            git pull --rebase --quiet origin archive/records
+          else
+            git checkout --quiet -b archive/records
+          fi
+          git add archive/theories/*.yaml archive/perf/*.json THEORIES.md || true
+          if git diff --cached --quiet; then
+            echo "No new records to commit"
+          else
+            git commit -m "chore(archive): add ingested theory records from run $GITHUB_RUN_ID" || true
+            git push "https://x-access-token:${ARCHIVE_PAT}@github.com/${{ github.repository }}" HEAD:archive/records
+          fi
