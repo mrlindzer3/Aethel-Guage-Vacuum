@@ -3,6 +3,7 @@ name: Deploy mkdocs site to GitHub Pages
 on:
   push:
     branches:
+      - main
       - lab/academy-grade
       - lab/academy-grade/features
   workflow_dispatch: {}
