@@ -63,33 +63,101 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements-dev.txt ]; then python -m pip install -r requirements-dev.txt; else python -m pip install pytest numpy; fi
 
-      - name: Run performance check and emit JSON summary
+      - name: Run performance check, emit JSON summary, append THEORIES.md, and commit archive record
+        if: ${{ success() }}
         env:
           PYTHONPATH: .
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -e
+          set -euo pipefail
+
+          # Run perf and write JSON summary
           TIMESTAMP=$(date -u +"%Y%m%d-%H%M%SZ")
           OUT_DIR="archive/perf"
           OUT_FILE="$OUT_DIR/${TIMESTAMP}-${GITHUB_RUN_ID}.json"
           mkdir -p "$OUT_DIR"
           python tests/performance_check.py --cycles 10 --threshold 5.0 --emit-json "$OUT_FILE"
 
-      - name: Commit archive record to archive/records branch
-        if: ${{ success() }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -e
+          # Prepare archive branch and commit JSON + append human-readable entry to THEORIES.md
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Make sure we have the archive directory tracked
+
           git fetch origin
-          git checkout -B archive/records
-          git add archive/perf/*.json || true
+          # Create or reset local archive branch to match remote if exists
+          if git ls-remote --heads origin archive/records >/dev/null 2>&1; then
+            git checkout --quiet archive/records
+            git pull --rebase --quiet origin archive/records
+          else
+            git checkout --quiet -b archive/records
+          fi
+
+          # Move the emitted JSON into the working tree (it's already in workspace)
+          git add "$OUT_FILE"
+
+          # Ensure THEORIES.md exists in the archive branch
+          if [ ! -f THEORIES.md ]; then
+            echo "# Theories" > THEORIES.md
+            echo "" >> THEORIES.md
+            git add THEORIES.md
+          fi
+
+          # Read metrics from JSON
+          AVG_MS=$(python - <<PY
+import json,sys
+p='"$OUT_FILE"'
+# strip potential quotes
+p=p.strip('"')
+try:
+    j=json.load(open(p))
+    print(j.get('avg_ms',''))
+except Exception as e:
+    print('')
+PY
+)
+          MAX_MS=$(python - <<PY
+import json,sys
+p='"$OUT_FILE"'
+p=p.strip('"')
+try:
+    j=json.load(open(p))
+    print(j.get('max_ms',''))
+except Exception as e:
+    print('')
+PY
+)
+
+          # Determine conclusion
+          THRESHOLD=5.0
+          CONCLUSION="Supported"
+          # compare as floats
+          if [ -n "$AVG_MS" ]; then
+            awk -v a="$AVG_MS" -v t="$THRESHOLD" 'BEGIN { if (a+0 > t+0) print "Not supported"; else print "Supported" }' >/tmp/concl || true
+            if [ -s /tmp/concl ]; then
+              CONCLUSION=$(cat /tmp/concl)
+            fi
+          fi
+
+          # Append a short entry to THEORIES.md
+          echo "- id: ${TIMESTAMP}-${GITHUB_RUN_ID}" >> THEORIES.md
+          echo "  title: Automated perf check ${TIMESTAMP}" >> THEORIES.md
+          echo "  hypothesis: Stubbed pipeline runs under ${THRESHOLD} ms average" >> THEORIES.md
+          echo "  experiment: tests/performance_check.py --cycles 10 --threshold ${THRESHOLD}" >> THEORIES.md
+          echo "  artifacts: ${OUT_FILE}" >> THEORIES.md
+          if [ -n "$AVG_MS" ]; then
+            echo "  evidence: avg_ms=${AVG_MS} ms, max_ms=${MAX_MS} ms" >> THEORIES.md
+          else
+            echo "  evidence: see ${OUT_FILE}" >> THEORIES.md
+          fi
+          echo "  conclusion: ${CONCLUSION}" >> THEORIES.md
+          echo "  author: @${GITHUB_ACTOR}" >> THEORIES.md
+          echo "  date: $(date -u +%Y-%m-%d)" >> THEORIES.md
+          echo "" >> THEORIES.md
+
+          # Commit and push changes to archive branch
           if git diff --cached --quiet; then
             echo "No new archive records to commit"
           else
-            git commit -m "chore(archive): add perf record $GITHUB_RUN_ID"
-            # Push using the GITHUB_TOKEN
-            git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }} HEAD:archive/records
+            git commit -m "chore(archive): add perf record ${GITHUB_RUN_ID} and update THEORIES.md" || true
+            # Push using token
+            git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}" HEAD:archive/records
           fi
