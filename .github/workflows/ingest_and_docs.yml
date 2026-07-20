@@ -49,7 +49,7 @@ jobs:
             archive/perf/*.json
             archive/theories/*.yaml
 
-      - name: Conditional push of YAML + THEORIES.md to archive/records
+      - name: Conditional push of YAML to archive/records
         if: ${{ secrets.ARCHIVE_PAT != '' }}
         env:
           ARCHIVE_PAT: ${{ secrets.ARCHIVE_PAT }}
@@ -64,7 +64,7 @@ jobs:
           else
             git checkout --quiet -b archive/records
           fi
-          git add archive/theories/*.yaml archive/perf/*.json THEORIES.md || true
+          git add archive/theories/*.yaml archive/perf/*.json || true
           if git diff --cached --quiet; then
             echo "No new records to commit"
           else
