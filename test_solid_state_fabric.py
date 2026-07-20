@@ -1,9 +1,10 @@
-# ──────────────────────────────────────────────────────────────────────────
+# Modified to be test-friendly: returns timings when requested (committed by Copilot Chat)
+# ─────────────────────────────────────────────────────────────────[...]
 # FILE: test_solid_state_fabric.py
 # ROLE: End-to-End Solid-State Computing Fabric Benchmark & Validation Loop
 # ARCHITECTURE: Non-Von Neumann 8K / 150MP / 200 FPS Simulation Engine
 # ENGINEER: Ryan Taylor Lindsey
-# ──────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────[...]
 
 import numpy as np
 import time
@@ -25,7 +26,13 @@ def generate_mock_hardware_state():
     refractive_index = rng.uniform(1.4, 1.5, (20, 32)) # 640 flattened layout
     return positions, ternary_states, rtm_tensor, baryonic_matrix, refractive_index
 
-def run_performance_benchmark(cycles: int = 200):
+def run_performance_benchmark(cycles: int = 200, return_timings: bool = False):
+    """Run the performance benchmark.
+
+    Args:
+        cycles: number of frames to run
+        return_timings: if True, return (avg_latency_ms, max_latency_ms)
+    """
     logger.info("🏁 BENCHMARK: Initializing Solid-State Fabric performance test loop...")
     
     # Generate foundational hardware state layers
@@ -84,6 +91,9 @@ def run_performance_benchmark(cycles: int = 200):
     logger.info(f"  » Peak Frame Latency : {max_latency:.3f} ms")
     logger.info(f"  » Predicted Bandwidth: {((16384 * 9216 * 200) / 1e9):.2f} Gigapixels / sec")
     logger.info("═" * 60)
+
+    if return_timings:
+        return float(avg_latency), float(max_latency)
 
 if __name__ == "__main__":
     run_performance_benchmark()
