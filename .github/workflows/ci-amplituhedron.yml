@@ -1,0 +1,81 @@
+name: amplituhedron
+
+on:
+  push:
+    branches: [ feat/cgroup-throttle-manager ]
+  workflow_dispatch: {}
+
+jobs:
+  amplituhedron:
+    name: amplituhedron (verbose install + wheel + test capture)
+    runs-on: ubuntu-latest
+    container:
+      image: python:3.11-slim
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare log and wheel dirs
+        run: |
+          mkdir -p ampl_logs
+          mkdir -p ampl_wheels
+
+      - name: Show Python & pip
+        run: |
+          python --version | tee ampl_logs/python_version.txt
+          pip --version | tee ampl_logs/pip_version.txt
+
+      - name: Install core build tools (verbose)
+        run: |
+          set -euxo pipefail
+          python -m pip install --upgrade pip setuptools wheel build 2>&1 | tee ampl_logs/pip_install_core.log
+
+      - name: Pip debug (verbose)
+        run: |
+          pip debug --verbose 2>&1 | tee ampl_logs/pip_debug.log || true
+
+      - name: Verbose install of requirements-dev.txt (if present)
+        run: |
+          set -euxo pipefail
+          if [ -f requirements-dev.txt ]; then
+            pip install --verbose --no-cache-dir -r requirements-dev.txt 2>&1 | tee ampl_logs/pip_install_reqs_dev.log || true
+          else
+            echo "no requirements-dev.txt" | tee ampl_logs/pip_install_reqs_dev.log
+          fi
+
+      - name: Try building wheels for requirements-dev.txt (if present)
+        run: |
+          if [ -f requirements-dev.txt ]; then
+            pip wheel --no-deps -r requirements-dev.txt -w ampl_wheels 2>&1 | tee ampl_logs/pip_wheel_reqs_dev.log || true
+          else
+            echo "no requirements-dev.txt" | tee ampl_logs/pip_wheel_reqs_dev.log
+          fi
+
+      - name: Try editable install of the package (if pyproject.toml or setup.py exists)
+        run: |
+          if [ -f pyproject.toml ] || [ -f setup.py ]; then
+            python -m pip install --verbose -e . 2>&1 | tee ampl_logs/pip_install_editable.log || true
+          else
+            echo "no package to install" | tee ampl_logs/pip_install_editable.log
+          fi
+
+      - name: pip list & pip check
+        run: |
+          pip list --format=columns 2>&1 | tee ampl_logs/pip_list.log
+          pip check 2>&1 | tee ampl_logs/pip_check.log || true
+
+      - name: Run tests (capture output)
+        run: |
+          pytest -q 2>&1 | tee ampl_logs/pytest.log || true
+
+      - name: Upload logs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: amplituhedron-logs
+          path: ampl_logs
+
+      - name: Upload built wheels (if any)
+        uses: actions/upload-artifact@v4
+        with:
+          name: amplituhedron-wheels
+          path: ampl_wheels
