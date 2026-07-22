@@ -29,10 +29,13 @@ jobs:
           # If the repo provides a requirements-dev.txt, install it after core tools (best-effort)
           if [ -f requirements-dev.txt ]; then pip install --no-cache-dir -r requirements-dev.txt || true; fi
 
-      - name: Show Python & pip versions
+      - name: Show Python, pip, and environment info
         run: |
           python --version
           pip --version
+          pip list --format=columns
+          python -c "import sys, site; print('sys.path:', sys.path); print('site.getsitepackages:', getattr(site, 'getsitepackages', lambda: [])())"
+          uname -a || true
 
       - name: Run linters (black/isort/flake8)
         continue-on-error: true
