@@ -1,3 +1,6 @@
+# Aethel-Gauge-Vacuum
+
+Quantum-classical hybrid verification suite featuring symbolic operator checks, commutation relations, unitarity tests, and tolerance-based assertions.
 # qvalidate: Symbolic Quantum Validator (scaffold)
 
 This repository contains a small scaffold for symbolic verification utilities
