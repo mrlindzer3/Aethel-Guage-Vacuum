@@ -1,3 +1,5 @@
+"""QValidate: Quantum-Classical Hybrid Verification Suite."""
+__version__ = "0.1.0"
 """qvalidate.symbolic
 
 Symbolic quantum-classical hybrid verification utilities (scaffold).
