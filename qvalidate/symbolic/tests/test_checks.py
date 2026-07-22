@@ -1,4 +1,16 @@
 import sympy as sp
+from qvalidate.symbolic.checks import commutator, is_unitary
+
+def test_commutator():
+    A = sp.Matrix([[0, 1], [1, 0]])
+    B = sp.Matrix([[1, 0], [0, -1]])
+    res = commutator(A, B)
+    assert res is not None
+
+def test_is_unitary():
+    U = sp.eye(2)
+    assert is_unitary(U) is True
+import sympy as sp
 from sympy import Matrix, I, sqrt
 
 from qvalidate.symbolic.checks import commutator, is_unitary
