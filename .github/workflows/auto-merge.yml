@@ -1,0 +1,21 @@
+name: Auto Merge PR
+
+on:
+  pull_request_target:
+    types: [labeled, synchronize, reopened, ready_for_review]
+  check_suite:
+    types: [completed]
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto-merge PR
+        uses: pascalgn/automerge-action@v0.16.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MERGE_METHOD: merge
+          DELETE_BRANCH: true
+          MERGE_RETRIES: 10
+          MERGE_RETRY_SLEEP: 10
+          MINIMUM_APPROVALS: 0
