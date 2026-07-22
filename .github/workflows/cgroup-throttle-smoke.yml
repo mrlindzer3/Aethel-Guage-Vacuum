@@ -1,0 +1,101 @@
+name: cgroup-throttle-smoke-test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke-test:
+    # Must be a self-hosted runner that you control with cgroup access
+    runs-on: [self-hosted, linux, cgroup]
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dev dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+
+      - name: Smoke test — spawn CPU hog, attach, inspect, cleanup
+        # This step assumes the runner can run sudo and write to /sys/fs/cgroup.
+        run: |
+          set -euo pipefail
+
+          echo "=== Spawn CPU hog ==="
+          # spawn a simple Python busy loop in background and record PID
+          python3 - <<'PY' & 
+import time
+while True:
+    pass
+PY
+          HOG_PID=$!
+          echo "HOG_PID=$HOG_PID"
+          sleep 1
+
+          echo "=== Verify hog running ==="
+          ps -p $HOG_PID -o pid,pcpu,cmd || true
+
+          echo "=== Attach PID to cgroup (10%) ==="
+          # Use sudo to ensure we can write /sys/fs/cgroup (runner must allow sudo)
+          sudo python3 tools/cgroup_throttle.py --pid $HOG_PID --percent 10 || true
+
+          echo "=== cgroup files (v2) ==="
+          if [ -f /sys/fs/cgroup/microsoft_throttle/cpu.max ]; then
+            echo "--- cpu.max ---"
+            cat /sys/fs/cgroup/microsoft_throttle/cpu.max || true
+            echo "--- cgroup.procs ---"
+            cat /sys/fs/cgroup/microsoft_throttle/cgroup.procs || true
+            echo "--- cpu.stat ---"
+            cat /sys/fs/cgroup/microsoft_throttle/cpu.stat || true
+          else
+            echo "v2 cgroup not present or /sys/fs/cgroup/microsoft_throttle missing"
+          fi
+
+          echo "=== cgroup files (v1 cpu) ==="
+          if [ -d /sys/fs/cgroup/cpu/microsoft_throttle ]; then
+            echo "--- cpu.cfs_quota_us ---"
+            cat /sys/fs/cgroup/cpu/microsoft_throttle/cpu.cfs_quota_us || true
+            echo "--- cpu.cfs_period_us ---"
+            cat /sys/fs/cgroup/cpu/microsoft_throttle/cpu.cfs_period_us || true
+            echo "--- tasks ---"
+            cat /sys/fs/cgroup/cpu/microsoft_throttle/tasks || true
+          else
+            echo "v1 cpu hierarchy not present or /sys/fs/cgroup/cpu/microsoft_throttle missing"
+          fi
+
+          echo "=== Snapshot process usage after attach ==="
+          ps -p $HOG_PID -o pid,pcpu,cmd || true
+          top -b -n1 -p $HOG_PID | sed -n '1,40p' || true
+
+          echo "=== Cleanup: move any remaining PIDs out and remove cgroup ==="
+          # Move out v2 pids
+          if [ -f /sys/fs/cgroup/microsoft_throttle/cgroup.procs ]; then
+            while read -r pid; do
+              [ -z "$pid" ] && continue
+              sudo bash -c "echo $pid > /sys/fs/cgroup/cgroup.procs" || true
+            done < /sys/fs/cgroup/microsoft_throttle/cgroup.procs || true
+            sudo rmdir /sys/fs/cgroup/microsoft_throttle || true
+          fi
+
+          # Move out v1 pids and remove
+          if [ -f /sys/fs/cgroup/cpu/microsoft_throttle/tasks ]; then
+            while read -r pid; do
+              [ -z "$pid" ] && continue
+              sudo bash -c "echo $pid > /sys/fs/cgroup/cpu/tasks" || true
+            done < /sys/fs/cgroup/cpu/microsoft_throttle/tasks || true
+            sudo rmdir /sys/fs/cgroup/cpu/microsoft_throttle || true
+          fi
+
+          # Kill hog if still running
+          if ps -p $HOG_PID > /dev/null 2>&1; then
+            sudo kill -9 $HOG_PID || true
+          fi
+
+          echo "Smoke test completed."
