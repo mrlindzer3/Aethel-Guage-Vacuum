@@ -1,0 +1,62 @@
+name: ci-full-install
+
+on:
+  push:
+    branches: [ feat/cgroup-throttle-manager ]
+  workflow_dispatch: {}
+
+jobs:
+  full-install:
+    name: Full install + verbose logs
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.11]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install system build deps
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y build-essential libssl-dev libffi-dev python3-dev pkg-config libpq-dev || true
+
+      - name: Install core pip build tools (verbose)
+        run: |
+          python -m pip install --upgrade pip setuptools wheel build 2>&1 | tee full_install_logs/pip_install_core.log || true
+
+      - name: Verbose install of requirements-dev.txt and editable install
+        run: |
+          set -euxo pipefail
+          mkdir -p full_install_logs
+          if [ -f requirements-dev.txt ]; then
+            pip install --verbose --no-cache-dir -r requirements-dev.txt 2>&1 | tee full_install_logs/pip_install_reqs_dev.log || true
+          else
+            echo "no requirements-dev.txt" | tee full_install_logs/pip_install_reqs_dev.log
+          fi
+
+          if [ -f pyproject.toml ] || [ -f setup.py ]; then
+            python -m pip install --verbose -e . 2>&1 | tee full_install_logs/pip_install_editable.log || true
+          else
+            echo "no package to install" | tee full_install_logs/pip_install_editable.log
+          fi
+
+      - name: pip check & list
+        run: |
+          pip list --format=columns 2>&1 | tee full_install_logs/pip_list.log || true
+          pip check 2>&1 | tee full_install_logs/pip_check.log || true
+
+      - name: Run tests (capture)
+        run: |
+          pytest -q 2>&1 | tee full_install_logs/pytest.log || true
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-install-logs
+          path: full_install_logs
