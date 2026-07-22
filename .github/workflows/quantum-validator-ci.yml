@@ -3,8 +3,7 @@ name: Quantum Validator CI
 on:
   push:
     branches: [ feat/quantum-validator/scaffold ]
-  pull_request:
-    branches: [ main ]
+  pull_request: {}
 
 jobs:
   test:
@@ -12,6 +11,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
 
       - name: Set up Python
         uses: actions/setup-python@v4

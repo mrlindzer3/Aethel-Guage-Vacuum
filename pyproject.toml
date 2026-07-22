@@ -6,7 +6,7 @@ authors = ["mrlindzer3 <mr.lindzer3@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-SymPy = "^1.12"
+sympy = "^1.12"
 numpy = "^1.26"
 
 [tool.poetry.dev-dependencies]

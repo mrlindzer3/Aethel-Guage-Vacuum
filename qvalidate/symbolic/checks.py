@@ -6,17 +6,16 @@ or simulation code.
 
 Functions implemented (minimal scaffold):
 - commutator(A, B): returns A*B - B*A
-- is_unitary(U): returns True if U^† U == I (symbolically)
+- is_unitary(U, tol=None): returns True if U^† U == I (symbolically or numerically with tol)
 - simplify_unitary(expr): convenience wrapper around sympy.simplify
 """
-from typing import Any
+from typing import Any, Optional
 
 import sympy as sp
 from sympy import Matrix
 
 
 def _to_matrix(x: Any) -> Matrix:
-    """Convert input to a SymPy Matrix if possible."""
     if isinstance(x, Matrix):
         return x
     try:
@@ -26,27 +25,48 @@ def _to_matrix(x: Any) -> Matrix:
 
 
 def commutator(A: Any, B: Any) -> Matrix:
-    """Return the commutator [A, B] = A*B - B*A as a SymPy Matrix."""
     A_m = _to_matrix(A)
     B_m = _to_matrix(B)
     return (A_m * B_m) - (B_m * A_m)
 
 
-def is_unitary(U: Any) -> bool:
-    """Symbolically test whether U is unitary: U^† U == I.
+def is_unitary(U: Any, tol: Optional[float] = None) -> bool:
+    """Test whether U is unitary.
 
-    Returns True if the simplified difference is the zero matrix.
+    If tol is None, perform exact symbolic check (A^† A == I) using SymPy
+    simplification and exact equality for all entries. If tol is provided,
+    perform a numeric tolerance-based check where entries are evaluated to
+    floating-point and compared against tol.
     """
     U_m = _to_matrix(U)
-    # conjugate transpose
     U_dag = U_m.conjugate().T
-    prod = (U_dag * U_m).applyfunc(sp.simplify)
+    prod = U_dag * U_m
     I = sp.eye(U_m.rows)
-    diff = sp.simplify(prod - I)
-    # For symbolic matrices, equality to zero matrix is tested by all entries being zero
-    return all(sp.simplify(entry) == 0 for entry in diff)
+    diff = prod - I
+
+    if tol is None:
+        diff_s = sp.simplify(diff)
+        return all(sp.simplify(entry) == 0 for entry in diff_s)
+
+    # Numeric tolerance path
+    max_abs = 0.0
+    for entry in diff:
+        try:
+            val = complex(sp.N(entry, 17))
+            absval = abs(val)
+        except Exception:
+            # if numeric evaluation fails, fall back to symbolic equality
+            simplified = sp.simplify(entry)
+            if simplified == 0:
+                absval = 0.0
+            else:
+                return False
+        if absval > max_abs:
+            max_abs = absval
+        if max_abs > tol:
+            return False
+    return True
 
 
 def simplify_unitary(expr: Any) -> Any:
-    """Convenience wrapper to simplify symbolic expressions representing unitaries or operators."""
     return sp.simplify(expr)
