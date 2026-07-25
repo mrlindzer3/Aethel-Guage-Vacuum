@@ -249,3 +249,122 @@ if __name__ == "__main__":
     print(f"Exceptional Point Coalescence Detected: {result['At_Exceptional_Point']}")
     print(f"Eigenvalues: {result['Eigenvalues'][:2]}...")
     print(f"Final Processed State Vector: {result['Processed_State']}")
+import numpy as np
+from typing import Tuple, Dict
+
+class NeuralQuantumBridgeEngine:
+    def __init__(self, system_dimension: int, gyromagnetic_ratio: float = 42.576):
+        """
+        Initializes the Proton Spin Entanglement and Neural Interfacing module
+        for mapping biological action potentials to topological optomechanical states.
+        
+        Parameters:
+        - system_dimension: Dimensionality of the joint quantum-neural state space.
+        - gyromagnetic_ratio: Proton gyromagnetic ratio in MHz/T (approximate standard value).
+        """
+        self.dim = system_dimension
+        self.gamma = gyromagnetic_ratio
+        self.nuclear_spin_matrix = np.zeros((self.dim, self.dim), dtype=complex)
+        self.density_matrix = np.eye(self.dim, dtype=complex) / self.dim
+
+    def simulate_posner_nuclear_spin_hamiltonian(self, local_magnetic_field: np.ndarray, 
+                                                    exchange_coupling: float) -> np.ndarray:
+        """
+        Constructs the nuclear spin Hamiltonian for entangled proton-phosphorus 
+        clusters (e.g., simulated Posner molecules) interacting with neural magnetic fields.
+        """
+        # Pauli-X, Y, Z operators for spin-1/2 systems scaled across the dimension
+        sx = np.array([[0, 1], [1, 0]], dtype=complex)
+        sz = np.array([[1, 0], [0, -1]], dtype=complex)
+        
+        # Expand operators to system dimension if necessary, or use base matrix mapping
+        H_spin = np.zeros((self.dim, self.dim), dtype=complex)
+        for i in range(min(self.dim, len(local_magnetic_field))):
+            H_spin[i, i] = self.gamma * local_magnetic_field[i]
+            if i < self.dim - 1:
+                H_spin[i, i+1] = exchange_coupling
+                H_spin[i+1, i] = exchange_coupling
+                
+        self.nuclear_spin_matrix = H_spin
+        return self.nuclear_spin_matrix
+
+    def compute_proton_entanglement_entropy(self) -> float:
+        """
+        Calculates the von Neumann entanglement entropy of the nuclear spin subsystem 
+        to quantify quantum coherence persistence during neural firing events.
+        """
+        # Normalize density matrix
+        tr = np.trace(self.density_matrix)
+        if tr != 0:
+            rho = self.density_matrix / tr
+        else:
+            rho = self.density_matrix
+            
+        # Compute eigenvalues for entropy calculation (-Tr(rho log2 rho))
+        eigenvals = np.linalg.eigvalsh(rho)
+        eigenvals = eigenvals[eigenvals > 1e-12] # Filter zero values to avoid log(0)
+        
+        entropy = -np.sum(eigenvals * np.log2(eigenvals))
+        return float(np.real(entropy))
+
+    def optomechanical_neural_transduction(self, neural_firing_rate: np.ndarray, 
+                                           cavity_backaction_gain: float) -> np.ndarray:
+        """
+        Translates neural action potential firing rates into real-time optical 
+        cavity phase modulations, feeding biological signals into topological edge channels.
+        """
+        # Map neural firing frequencies to magnetic flux perturbations
+        induced_flux = neural_firing_rate * 1e-9 # Tesla scaling
+        
+        # Apply optomechanical backaction damping to stabilize the quantum-biological interface
+        stabilized_signal = induced_flux * (1.0 - cavity_backaction_gain * np.tanh(induced_flux))
+        return stabilized_signal
+
+    def step_neural_quantum_cycle(self, neural_voltages: np.ndarray, 
+                                  magnetic_vector: np.ndarray, 
+                                  exchange_coupling: float, 
+                                  backaction_gain: float) -> Dict[str, np.ndarray]:
+        """
+        Executes a complete biological-to-quantum synthesis cycle, linking neural 
+        activity with proton spin entanglement and optomechanical feedback.
+        """
+        # 1. Construct Nuclear Spin Hamiltonians from Neural Fields
+        H_spin = self.simulate_posner_nuclear_spin_hamiltonian(magnetic_vector, exchange_coupling)
+        
+        # 2. Evolve Density Matrix via von Neumann Equation (d_rho/dt = -i[H, rho])
+        commutation = np.dot(H_spin, self.density_matrix) - np.dot(self.density_matrix, H_spin)
+        self.density_matrix = self.density_matrix - 1j * commutation * 0.01
+        
+        # 3. Compute Entanglement Entropy
+        entropy = self.compute_proton_entanglement_entropy()
+        
+        # 4. Perform Optomechanical Transduction of Neural Firing
+        transduced_output = self.optomechanical_neural_transduction(neural_voltages, backaction_gain)
+
+        return {
+            "Nuclear_Spin_Hamiltonian": H_spin,
+            "Entanglement_Entropy": np.array([entropy]),
+            "Transduced_Neural_Signal": transduced_output,
+            "Density_Matrix_Trace": np.array([np.trace(self.density_matrix).real])
+        }
+
+# --- Execution Example ---
+if __name__ == "__main__":
+    dim = 4
+    bridge_engine = NeuralQuantumBridgeEngine(system_dimension=dim)
+    
+    # Mock biological inputs: Neural firing voltages and local magnetic field vectors
+    mock_voltages = np.array([35.5, -70.2, 12.4, -45.0])
+    mock_magnetic_field = np.array([0.05, 0.02, 0.08, 0.01])
+    
+    bridge_result = bridge_engine.step_neural_quantum_cycle(
+        neural_voltages=mock_voltages,
+        magnetic_vector=mock_magnetic_field,
+        exchange_coupling=0.15,
+        backaction_gain=0.05
+    )
+    
+    print("--- Neural-Quantum Bridge Execution Status ---")
+    print(f"Proton Entanglement Entropy: {bridge_result['Entanglement_Entropy'][0]:.4f} bits")
+    print(f"Density Matrix Trace Validation: {bridge_result['Density_Matrix_Trace'][0]:.4f}")
+    print(f"Transduced Neural Signal Output: {bridge_result['Transduced_Neural_Signal']}")
