@@ -3,6 +3,10 @@ from typing import Dict
 
 class AethelGaugeMatrixCore:
     def __init__(self, manifold_dimension: int = 128, golden_ratio: float = 1.61803398875):
+        """
+        Integrated Aethel-Gauge Matrix Core combining Isomorphic Bulk-Boundary Spatial SVD 
+        and Ternary Analog Wave Computing within a nested hyper-quasi crystal lattice.
+        """
         self.dim = manifold_dimension
         self.tau = golden_ratio
         self.metric_manifold = np.eye(self.dim, dtype=complex)
