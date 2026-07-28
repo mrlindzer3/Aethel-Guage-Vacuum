@@ -1,3 +1,4 @@
+// [AETHEL-MESH-PIPELINE] Owner: mrlindzer3 | Checkpoint: 48df1716c09d4bfe4762dc63e60e3103c1f25d58f151b82fc79861f7f70217d5
 # Dashboard Service
 # Purpose: Structures and streams real-time telemetry from the 
 # holographic compiler and theorem prover for dashboard visualization.
