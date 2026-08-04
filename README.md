@@ -18,3 +18,9 @@ Next steps (suggested):
 - Expand checks to support operator algebras and tensor products
 - Integrate with existing test matrix and CI caching
 - Add example notebooks demonstrating symbolic + numeric interplay
+
+Now Featuring
+Mathematical Generation: Quasicrystal and lattice coordinate generation scripts (.py).
+​Fabrication Routing: GDSII / SVG vector mask exporting for cleanroom lithography.
+​Hardware Acceleration: GLSL/Vulkan/ModernGL compute shader kernels.
+​Game Engine Middleware: Native C# buffers for Unity and C++ RDG compute passes for Unreal Engine 5.
