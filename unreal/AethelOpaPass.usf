@@ -1,0 +1,25 @@
+#include "/Engine/Public/Platform.ush"
+
+// Define local workgroup size (256 threads per group)
+[numthreads(256, 1, 1)]
+void AethelOpaComputeMain(
+    uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+    uint Index = DispatchThreadId.x;
+    
+    // Read/Write buffers bound via RDG
+    if (Index >= NumNodes) return;
+
+    float2 Pos = NodeBuffer[Index];
+    
+    // Wave number calculation
+    float K = 6.28318530718 / Wavelength;
+    
+    // Real-time spatial projection along steering vector
+    float SpatialProjection = Pos.x * sin(SteeringAngle);
+    
+    // Compute wrapped phase delay [0, 2*pi]
+    float PhaseDelay = fmod(K * SpatialProjection, 6.28318530718);
+    
+    PhaseBuffer[Index] = PhaseDelay;
+}
